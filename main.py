@@ -2,6 +2,7 @@ import sys
 import json
 import os
 from datetime import datetime
+import qrcode  # <--- NUEVO IMPORT
 
 # --- CONFIGURACIÓN DE ARCHIVOS ---
 ARCHIVO_DATOS = "inventario.json"
@@ -72,8 +73,37 @@ def login():
     print("Demasiados intentos fallidos. Saliendo...")
     sys.exit()
 
+def generar_qr(codigo_producto):
+    """Genera una imagen QR basada en el código del producto."""
+    # Nombre de la carpeta donde se guardarán los QR
+    carpeta = "codigos_qr"
+    
+    # Si la carpeta no existe, la crea automáticamente
+    if not os.path.exists(carpeta):
+        os.makedirs(carpeta)
+    
+    # Contenido del QR (En este caso, el código único del producto)
+    contenido = codigo_producto
+    
+    # Crear la imagen QR
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(contenido)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Guardar la imagen
+    ruta_archivo = f"{carpeta}/{codigo_producto}.png"
+    img.save(ruta_archivo)
+    print(f">> Código QR generado exitosamente en: {ruta_archivo}")
+
 def registrar_producto():
-    """Permite registrar nuevos productos y guarda cambios."""
+    """Permite registrar nuevos productos y genera su QR (RF-002, RF-003)."""
     print("\n--- REGISTRO DE NUEVO PRODUCTO ---")
     codigo = input("Ingrese Código del producto (o ENTER para cancelar): ")
     if not codigo: return
@@ -98,9 +128,14 @@ def registrar_producto():
         "precio": precio,
         "stock": cantidad
     }
-
-    guardar_datos() # <--- GUARDAMOS CAMBIOS
-    print(f"Producto '{nombre}' registrado y guardado con éxito.")
+    
+    guardar_datos() # Guardar en JSON
+    
+    # --- NUEVO: GENERAR EL QR AUTOMÁTICAMENTE ---
+    print("Generando código QR...")
+    generar_qr(codigo) 
+    
+    print(f"Producto '{nombre}' registrado correctamente.")
 
 def editar_producto():
     """Permite modificar nombre, categoría, precio o stock de un producto (RF-004)."""
@@ -219,7 +254,7 @@ def menu_principal():
     rol_usuario = login()
     
     while True:
-        print("\n=== MENÚ PRINCIPAL (V-1.4 Completa) ===")
+        print("\n=== MENÚ PRINCIPAL (V-1.3) ===")
         print("1. Registrar Producto (Admin)")
         print("2. Editar Producto (Admin)")
         print("3. Eliminar Producto (Admin)") # <--- NUEVA OPCIÓN
@@ -262,3 +297,4 @@ def menu_principal():
 # --- PUNTO DE ENTRADA ---
 if __name__ == "__main__":
     menu_principal()
+    
