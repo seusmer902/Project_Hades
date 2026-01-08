@@ -7,19 +7,11 @@ from datetime import datetime
 # ==========================================
 # 1. CONFIGURACIÓN Y CONSTANTES
 # ==========================================
-ARCHIVO_DATOS = "inventario.json"
-ARCHIVO_VENTAS = "ventas.json"
+ARCHIVO_DATOS = "inventario.txt"
+ARCHIVO_VENTAS = "ventas.txt"
 CARPETA_QR = "codigos_qr"
 
-# Variables Globales en Memoria
-inventario_db = {}
-ventas_db = []
-usuarios_db = {
-    "admin": {"pass": "123", "rol": "Administrador"},
-    "empleado": {"pass": "123", "rol": "Empleado"},
-}
-
-# Datos Semilla (Solo si el archivo no existe)
+# --- DATOS SEMILLA (Esto es lo que te falta) ---
 INVENTARIO_INICIAL = {
     "PAP-001": {
         "nombre": "Cuaderno 100h",
@@ -41,51 +33,107 @@ INVENTARIO_INICIAL = {
     },
 }
 
+# Variables Globales en Memoria
+inventario_db = {}
+ventas_db = []
+usuarios_db = {
+    "admin": {"pass": "12345", "rol": "Administrador"},
+    "empleado": {"pass": "12345", "rol": "Empleado"},
+}
+
 
 # ==========================================
-# 2. PERSISTENCIA (MANEJO DE ARCHIVOS)
+# 2. PERSISTENCIA (MANEJO DE ARCHIVOS PLANOS TXT)
 # ==========================================
 def cargar_datos_sistema():
-    """Carga tanto el inventario como el historial de ventas al iniciar."""
+    """Carga inventario y ventas desde archivos de texto plano separando por '|'."""
     global inventario_db, ventas_db
 
-    # 1. Cargar Inventario
+    # --- 1. CARGAR INVENTARIO ---
     if os.path.exists(ARCHIVO_DATOS):
+        inventario_db = {}  # Reiniciamos
         try:
             with open(ARCHIVO_DATOS, "r", encoding="utf-8") as f:
-                inventario_db = json.load(f)
-        except Exception:
-            inventario_db = {}
+                for linea in f:
+                    linea = linea.strip()
+                    if not linea:
+                        continue  # Saltar líneas vacías
+
+                    # Formato esperado: COD|NOMBRE|CATEGORIA|PRECIO|STOCK
+                    datos = linea.split("|")
+                    if len(datos) == 5:
+                        codigo = datos[0]
+                        inventario_db[codigo] = {
+                            "nombre": datos[1],
+                            "categoria": datos[2],
+                            "precio": float(datos[3]),
+                            "stock": int(datos[4]),
+                        }
+        except Exception as e:
+            print(f"⚠️ Error leyendo inventario.txt: {e}")
     else:
-        print(">> Primera ejecución. Cargando datos semilla...")
+        print(">> Creando inventario.txt con datos semilla...")
         inventario_db = INVENTARIO_INICIAL.copy()
         guardar_inventario()
 
-    # 2. Cargar Ventas
+    # --- 2. CARGAR VENTAS ---
     if os.path.exists(ARCHIVO_VENTAS):
+        ventas_db = []
         try:
             with open(ARCHIVO_VENTAS, "r", encoding="utf-8") as f:
-                ventas_db = json.load(f)
-        except Exception:
+                for linea in f:
+                    linea = linea.strip()
+                    if not linea:
+                        continue
+
+                    # Formato: FECHA|TOTAL|ITEMS(Resumen)
+                    datos = linea.split("|")
+                    if len(datos) >= 3:
+                        # Reconstruimos una estructura simple para mostrar en historial
+                        venta = {
+                            "fecha": datos[0],
+                            "total": float(datos[1]),
+                            "items_resumen": datos[2],  # Guardamos el string directo
+                        }
+                        ventas_db.append(venta)
+        except Exception as e:
+            print(f"⚠️ Error leyendo ventas.txt: {e}")
             ventas_db = []
     else:
         ventas_db = []
 
 
 def guardar_inventario():
-    """Guarda los cambios del inventario en el JSON."""
+    """Guarda el inventario línea por línea usando '|' como separador."""
     try:
         with open(ARCHIVO_DATOS, "w", encoding="utf-8") as f:
-            json.dump(inventario_db, f, indent=4, ensure_ascii=False)
+            for codigo, p in inventario_db.items():
+                # Escribimos: CODIGO|NOMBRE|CATEGORIA|PRECIO|STOCK
+                linea = f"{codigo}|{p['nombre']}|{p['categoria']}|{p['precio']}|{p['stock']}\n"
+                f.write(linea)
     except Exception as e:
         print(f"Error al guardar inventario: {e}")
 
 
 def guardar_historial_ventas():
-    """Guarda el historial de ventas en el JSON."""
+    """Guarda las ventas en TXT. Los items se guardan como un resumen de texto."""
     try:
         with open(ARCHIVO_VENTAS, "w", encoding="utf-8") as f:
-            json.dump(ventas_db, f, indent=4, ensure_ascii=False)
+            for v in ventas_db:
+                # Si 'items' es una lista (cuando acabamos de vender), la convertimos a string
+                # Si ya venía cargada del txt, usamos 'items_resumen'
+
+                if "items_resumen" in v:
+                    resumen = v["items_resumen"]
+                else:
+                    # Convertimos la lista de objetos a algo como: "Cuaderno(x2), Lapiz(x1)"
+                    resumen_lista = [
+                        f"{item['nombre']}(x{item['cantidad']})" for item in v["items"]
+                    ]
+                    resumen = ", ".join(resumen_lista)
+
+                linea = f"{v['fecha']}|{v['total']}|{resumen}\n"
+                f.write(linea)
     except Exception as e:
         print(f"Error al guardar ventas: {e}")
 
@@ -349,21 +397,33 @@ def consultar_inventario():
 
 
 def consultar_historial_ventas():
-    print("\n--- HISTORIAL DE VENTAS ---")
+    print("\n--- HISTORIAL DE VENTAS (TXT) ---")
     if not ventas_db:
         print("No hay registros.")
         return
 
     total_acumulado = 0.0
-    print(f"{'FECHA':<20} {'ITEMS':<10} {'TOTAL'}")
-    print("-" * 45)
+    print(f"{'FECHA':<20} {'RESUMEN ITEMS':<30} {'TOTAL'}")
+    print("-" * 65)
 
     for v in ventas_db:
-        cant_items = sum(item["cantidad"] for item in v["items"])
-        print(f"{v['fecha']:<20} {cant_items:<10} ${v['total']:.2f}")
+        # Recuperamos el resumen. Si acabas de registrarla está en 'items', si viene del archivo en 'items_resumen'
+        if "items_resumen" in v:
+            items_str = v["items_resumen"]
+        else:
+            # Caso raro: venta en memoria antes de guardar
+            items_str = ", ".join(
+                [f"{i['nombre']}(x{i['cantidad']})" for i in v["items"]]
+            )
+
+        # Recortamos el texto si es muy largo para que no rompa la tabla
+        if len(items_str) > 28:
+            items_str = items_str[:25] + "..."
+
+        print(f"{v['fecha']:<20} {items_str:<30} ${v['total']:.2f}")
         total_acumulado += v["total"]
 
-    print("-" * 45)
+    print("-" * 65)
     print(f"💰 INGRESOS TOTALES: ${total_acumulado:.2f}")
 
 
