@@ -3,31 +3,31 @@
         "nombre": "Cuaderno Universitario 100h",
         "categoria": "Cuadernos",
         "precio": 1.5,
-        "stock": 51
+        "stock": 46
     },
     "PAP-002": {
         "nombre": "Resma Papel Bond A4",
         "categoria": "Papel",
         "precio": 4.5,
-        "stock": 27
+        "stock": 22
     },
     "PAP-003": {
-        "nombre": "Carpeta Plástica Roja",
+        "nombre": "Carpeta Plastica Roja",
         "categoria": "Oficina",
         "precio": 0.85,
-        "stock": 60
+        "stock": 55
     },
     "PAP-004": {
-        "nombre": "Juego Geométrico",
-        "categoria": "Útiles",
+        "nombre": "Juego Geometrico",
+        "categoria": "Utiles",
         "precio": 2.25,
-        "stock": 15
+        "stock": 11
     },
     "PAP-005": {
         "nombre": "Compas",
         "categoria": "Utiles",
         "precio": 1.5,
-        "stock": 49
+        "stock": 44
     },
     "PAP-006": {
         "nombre": "Borrador de Queso",
@@ -42,7 +42,7 @@
         "stock": 21
     },
     "PAP-008": {
-        "nombre": "Lápiz Mongul HB",
+        "nombre": "Lapis Mongul HB",
         "categoria": "Escritura",
         "precio": 0.4,
         "stock": 95
@@ -69,25 +69,25 @@
         "nombre": "Marcador Negro",
         "categoria": "Escritura",
         "precio": 0.75,
-        "stock": 72
+        "stock": 71
     },
     "PAP-013": {
         "nombre": "Marcador Azul",
         "categoria": "Escritura",
         "precio": 0.75,
-        "stock": 73
+        "stock": 71
     },
     "PAP-014": {
         "nombre": "Marcador Rojo",
         "categoria": "Escritura",
         "precio": 0.75,
-        "stock": 74
+        "stock": 73
     },
     "PAP-015": {
         "nombre": "Escuadra",
         "categoria": "Utiles",
         "precio": 0.5,
-        "stock": 58
+        "stock": 57
     },
     "PAP-016": {
         "nombre": "PLastilina de colores 12",

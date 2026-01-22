@@ -1,3 +1,4 @@
+# datos.py
 import json
 import os
 from config import (
@@ -8,11 +9,31 @@ from config import (
     ARCHIVO_USUARIOS,
 )
 
+# ==========================================
+# 🔑 DEFINICIÓN DE PERMISOS Y ROLES
+# ==========================================
+PERMISOS_DISPONIBLES = {
+    "VENTAS": "Acceso a Caja y Facturación",
+    "STOCK": "Movimientos de Entrada/Salida",
+    "PROD": "Crear, Editar y Borrar Productos",
+    "CLIENTES": "Registrar y Ver Clientes",
+    "REPORTES": "Ver Historial de Ventas y Dinero",
+    "ADMIN": "Gestión Total (Usuarios y Config)",
+}
+
+# Plantillas rápidas (Roles)
+ROLES_PLANTILLA = {
+    "Administrador": ["VENTAS", "STOCK", "PROD", "CLIENTES", "REPORTES", "ADMIN"],
+    "Cajero": ["VENTAS", "CLIENTES"],
+    "Bodeguero": ["STOCK", "PROD"],
+    "Supervisor": ["VENTAS", "STOCK", "CLIENTES", "REPORTES"],
+}
+
 # Variables Globales
 inventario_db = {}
 ventas_db = []
 clientes_db = {}
-usuarios_db = {}  # <--- NUEVA VARIABLE GLOBAL
+usuarios_db = {}
 
 
 def cargar_datos_sistema():
@@ -49,53 +70,55 @@ def cargar_datos_sistema():
     else:
         clientes_db = {}
 
-    # 4. Cargar USUARIOS (¡NUEVO!)
+    # 4. Cargar USUARIOS (Con Migración Automática)
     if os.path.exists(ARCHIVO_USUARIOS):
         try:
             with open(ARCHIVO_USUARIOS, "r", encoding="utf-8") as f:
                 usuarios_db = json.load(f)
+
+            # --- MIGRACIÓN AUTOMÁTICA ---
+            guardar = False
+            for u, data in usuarios_db.items():
+                if "permisos" not in data:
+                    rol_viejo = data.get("rol", "Cajero")
+                    if rol_viejo in ROLES_PLANTILLA:
+                        data["permisos"] = ROLES_PLANTILLA[rol_viejo]
+                    else:
+                        data["permisos"] = ROLES_PLANTILLA["Cajero"]
+                    guardar = True
+            if guardar:
+                guardar_usuarios()
+
         except:
             usuarios_db = {}
     else:
-        # Si no existe, creamos el Admin por defecto para no bloquearnos
-        # Hash de "123": a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3
-        print(">> Creando sistema de usuarios por primera vez...")
+        # Admin por defecto
+        print(">> Creando Admin inicial...")
         usuarios_db = {
             "admin": {
-                "pass_hash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+                "pass_hash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",  # 123
                 "rol": "Administrador",
+                "permisos": ROLES_PLANTILLA["Administrador"],
             }
         }
         guardar_usuarios()
 
 
 def guardar_inventario():
-    try:
-        with open(ARCHIVO_DATOS, "w", encoding="utf-8") as f:
-            json.dump(inventario_db, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        print(f"Error inv: {e}")
+    with open(ARCHIVO_DATOS, "w", encoding="utf-8") as f:
+        json.dump(inventario_db, f, indent=4)
 
 
 def guardar_historial_ventas():
-    try:
-        with open(ARCHIVO_VENTAS, "w", encoding="utf-8") as f:
-            json.dump(ventas_db, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        print(f"Error ventas: {e}")
+    with open(ARCHIVO_VENTAS, "w", encoding="utf-8") as f:
+        json.dump(ventas_db, f, indent=4)
 
 
 def guardar_clientes():
-    try:
-        with open(ARCHIVO_CLIENTES, "w", encoding="utf-8") as f:
-            json.dump(clientes_db, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        print(f"Error clientes: {e}")
+    with open(ARCHIVO_CLIENTES, "w", encoding="utf-8") as f:
+        json.dump(clientes_db, f, indent=4)
 
 
-def guardar_usuarios():  # <--- NUEVA FUNCIÓN
-    try:
-        with open(ARCHIVO_USUARIOS, "w", encoding="utf-8") as f:
-            json.dump(usuarios_db, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        print(f"Error usuarios: {e}")
+def guardar_usuarios():
+    with open(ARCHIVO_USUARIOS, "w", encoding="utf-8") as f:
+        json.dump(usuarios_db, f, indent=4)

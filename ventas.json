@@ -1,29 +1,15 @@
 [
     {
-        "fecha": "2026-01-20 18:31:40",
-        "total": 10.2,
+        "fecha": "2026-01-22 01:03:49",
+        "total": 7.932499999999999,
         "cliente": "Manuel Carvajal",
         "items": [
             {
-                "codigo": "PAP-012",
-                "nombre": "Marcador Negro",
+                "codigo": "PAP-001",
+                "nombre": "Cuaderno Universitario 100h",
                 "cantidad": 1,
-                "precio": 0.75,
-                "subtotal": 0.75
-            },
-            {
-                "codigo": "PAP-013",
-                "nombre": "Marcador Azul",
-                "cantidad": 1,
-                "precio": 0.75,
-                "subtotal": 0.75
-            },
-            {
-                "codigo": "PAP-015",
-                "nombre": "Escuadra",
-                "cantidad": 1,
-                "precio": 0.5,
-                "subtotal": 0.5
+                "precio": 1.5,
+                "subtotal": 1.5
             },
             {
                 "codigo": "PAP-002",
@@ -33,53 +19,18 @@
                 "subtotal": 4.5
             },
             {
-                "codigo": "PAP-007",
-                "nombre": "Lapis",
-                "cantidad": 2,
-                "precio": 0.5,
-                "subtotal": 1.0
+                "codigo": "PAP-003",
+                "nombre": "Carpeta Plastica Roja",
+                "cantidad": 1,
+                "precio": 0.85,
+                "subtotal": 0.85
             },
             {
-                "codigo": "PAP-001",
-                "nombre": "Cuaderno Universitario 100h",
+                "codigo": "PAP-005",
+                "nombre": "Compas",
                 "cantidad": 1,
                 "precio": 1.5,
                 "subtotal": 1.5
-            },
-            {
-                "codigo": "PAP-010",
-                "nombre": "Esfero Bic Rojo",
-                "cantidad": 2,
-                "precio": 0.6,
-                "subtotal": 1.2
-            }
-        ]
-    },
-    {
-        "fecha": "2026-01-20 19:29:29",
-        "total": 2.85,
-        "cliente": "Manuel Carvajal",
-        "items": [
-            {
-                "codigo": "PAP-001",
-                "nombre": "Cuaderno Universitario 100h",
-                "cantidad": 2,
-                "precio": 1.5,
-                "subtotal": 3.0
-            }
-        ]
-    },
-    {
-        "fecha": "2026-01-20 19:32:48",
-        "total": 3.0,
-        "cliente": "Consumidor Final",
-        "items": [
-            {
-                "codigo": "PAP-001",
-                "nombre": "Cuaderno Universitario 100h",
-                "cantidad": 2,
-                "precio": 1.5,
-                "subtotal": 3.0
             }
         ]
     }

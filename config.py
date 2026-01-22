@@ -1,11 +1,17 @@
+# config.py
+import os
+
+# Archivos de Datos
 ARCHIVO_DATOS = "inventario.json"
 ARCHIVO_VENTAS = "ventas.json"
 ARCHIVO_CLIENTES = "clientes.json"
-ARCHIVO_USUARIOS = "usuarios.json"  # <--- NUEVO
+ARCHIVO_USUARIOS = "usuarios.json"
+
+# Carpetas
 CARPETA_QR = "codigos_qr"
 CARPETA_FACTURAS = "facturas"
 
-# Datos Semilla (Inventario Inicial)
+# Datos Semilla
 INVENTARIO_INICIAL = {
     "PAP-001": {
         "nombre": "Cuaderno 100h",
