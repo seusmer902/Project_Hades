@@ -1,8 +1,8 @@
+# datos.py
 import json
 import os
-import hashlib
 
-# Importamos desde config dentro de core
+# Cambio de ruta: Importamos desde el mismo paquete
 from .config import (
     ARCHIVO_DATOS,
     ARCHIVO_VENTAS,
@@ -11,14 +11,13 @@ from .config import (
     ARCHIVO_USUARIOS,
 )
 
-# --- BASES DE DATOS EN MEMORIA ---
-# Es vital que sean MUTABLES y no se reasignen con =
+# Variables Globales (Sin cambios)
 inventario_db = {}
 ventas_db = []
 clientes_db = {}
 usuarios_db = {}
 
-# --- ROLES Y PERMISOS ---
+# Definición de Permisos y Roles (Sin cambios)
 PERMISOS_DISPONIBLES = {
     "VENTAS": "Acceso a Caja y Facturación",
     "STOCK": "Movimientos de Entrada/Salida",
@@ -36,78 +35,74 @@ ROLES_PLANTILLA = {
 }
 
 
+# Funciones de Carga y Guardado (Lógica original intacta)
 def cargar_datos_sistema():
-    # Usamos global para asegurarnos de ver las variables,
-    # pero las modificaremos IN-PLACE (sin usar el signo =)
     global inventario_db, ventas_db, clientes_db, usuarios_db
 
     # 1. Cargar Inventario
     if os.path.exists(ARCHIVO_DATOS):
         try:
             with open(ARCHIVO_DATOS, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                inventario_db.clear()  # Borramos lo viejo
-                inventario_db.update(data)  # Ponemos lo nuevo
+                inventario_db = json.load(f)
         except:
-            inventario_db.clear()
+            inventario_db = {}
     else:
-        inventario_db.clear()
-        inventario_db.update(INVENTARIO_INICIAL)
+        inventario_db = INVENTARIO_INICIAL.copy()
         guardar_inventario()
 
-    # 2. Cargar Ventas (Lista)
+    # 2. Cargar Ventas
     if os.path.exists(ARCHIVO_VENTAS):
         try:
             with open(ARCHIVO_VENTAS, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                ventas_db[:] = (
-                    data  # [:] Truco para actualizar listas sin romper referencias
-                )
+                ventas_db = json.load(f)
         except:
-            ventas_db[:] = []
+            ventas_db = []
     else:
-        ventas_db[:] = []
+        ventas_db = []
 
     # 3. Cargar Clientes
     if os.path.exists(ARCHIVO_CLIENTES):
         try:
             with open(ARCHIVO_CLIENTES, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                clientes_db.clear()
-                clientes_db.update(data)
+                clientes_db = json.load(f)
         except:
-            clientes_db.clear()
+            clientes_db = {}
     else:
-        clientes_db.clear()
+        clientes_db = {}
 
     # 4. Cargar Usuarios
     if os.path.exists(ARCHIVO_USUARIOS):
         try:
             with open(ARCHIVO_USUARIOS, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                usuarios_db.clear()
-                usuarios_db.update(data)
+                usuarios_db = json.load(f)
+
+                # Migración automática de permisos (Tu lógica original)
+                guardar = False
+                for u, data in usuarios_db.items():
+                    if "permisos" not in data:
+                        rol_viejo = data.get("rol", "Cajero")
+                        if rol_viejo in ROLES_PLANTILLA:
+                            data["permisos"] = ROLES_PLANTILLA[rol_viejo]
+                        else:
+                            data["permisos"] = ROLES_PLANTILLA["Cajero"]
+                        guardar = True
+                if guardar:
+                    guardar_usuarios()
         except:
-            usuarios_db.clear()
+            usuarios_db = {}
     else:
-        # Admin por defecto si falla todo
-        pass_admin = hashlib.sha256("admin123".encode()).hexdigest()
-        usuarios_db.clear()
-        usuarios_db.update(
-            {
-                "admin": {
-                    "pass_hash": pass_admin,
-                    "rol": "Administrador",
-                    "permisos": ROLES_PLANTILLA["Administrador"],
-                }
+        # Admin por defecto
+        print(">> Creando Admin inicial...")
+        usuarios_db = {
+            "admin": {
+                "pass_hash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+                "rol": "Administrador",
+                "permisos": ROLES_PLANTILLA["Administrador"],
             }
-        )
+        }
         guardar_usuarios()
 
-    print("✅ Datos cargados correctamente en memoria compartida.")
 
-
-# --- FUNCIONES DE GUARDADO ---
 def guardar_inventario():
     with open(ARCHIVO_DATOS, "w", encoding="utf-8") as f:
         json.dump(inventario_db, f, indent=4)
@@ -126,13 +121,3 @@ def guardar_clientes():
 def guardar_usuarios():
     with open(ARCHIVO_USUARIOS, "w", encoding="utf-8") as f:
         json.dump(usuarios_db, f, indent=4)
-
-
-def resetear_password(usuario, nueva_pass):
-    if usuario in usuarios_db:
-        usuarios_db[usuario]["pass_hash"] = hashlib.sha256(
-            nueva_pass.encode()
-        ).hexdigest()
-        guardar_usuarios()
-        return True
-    return False

@@ -1,23 +1,27 @@
 # utils.py
 import os
-import platform
 import qrcode
-from .config import CARPETA_QR  # Importamos desde la misma carpeta core
+
+# Cambio de ruta: Importamos desde el mismo paquete
+from .config import CARPETA_QR
 
 
 def limpiar_pantalla():
-    sistema = platform.system()
-    if sistema == "Windows":
+    if os.name == "nt":
         os.system("cls")
     else:
         os.system("clear")
 
 
-def generar_qr(codigo, info):
+def generar_qr(nombre_archivo, info_contenido):
     if not os.path.exists(CARPETA_QR):
         os.makedirs(CARPETA_QR)
 
-    qr = qrcode.make(info)
-    ruta_imagen = os.path.join(CARPETA_QR, f"{codigo}.png")
-    qr.save(ruta_imagen)
-    print(f"✅ QR generado en: {ruta_imagen}")
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(info_contenido)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    ruta = f"{CARPETA_QR}/{nombre_archivo}.png"
+    img.save(ruta)
+    print(f">> QR generado: {ruta}")
