@@ -1,8 +1,5 @@
-# run.py
-# Importamos el módulo de datos desde el paquete core
+# run_terminal.py
 from core import datos
-
-# Importamos las operaciones y menús desde el paquete cli
 import cli.operaciones as ops
 import cli.menus as menus
 
@@ -21,20 +18,22 @@ def verificar(permiso):
 
 def ejecutar_sistema():
     global USUARIO_ACTUAL
-    # Cargamos los datos usando la función de core.datos
+
+    # 1. Cargamos la base de datos (Inventario, Usuarios, etc.)
     datos.cargar_datos_sistema()
 
-    # 1. Login
-    USUARIO_ACTUAL = ops.login()
+    # 2. INICIO DE SESIÓN (Llamamos a la nueva función Maestra)
+    # Antes era ops.login(), ahora es ops.iniciar_programa()
+    USUARIO_ACTUAL = ops.iniciar_programa()
 
+    # 3. Bucle Principal del Sistema
     while True:
-        # Recuperamos el rol para mostrarlo bonito
+        # Recuperamos el rol para mostrarlo en el menú
         rol_str = "Desconocido"
-        # Accedemos directamente a datos.usuarios_db (ya lo importamos arriba)
         if USUARIO_ACTUAL in datos.usuarios_db:
             rol_str = datos.usuarios_db[USUARIO_ACTUAL]["rol"]
 
-        # 2. Mostrar Menú Principal
+        # Mostrar Menú Principal
         op = menus.mostrar_menu_principal(USUARIO_ACTUAL, rol_str)
 
         # --- LÓGICA DE NAVEGACIÓN Y PERMISOS ---
@@ -56,7 +55,6 @@ def ejecutar_sistema():
             if verificar("ADMIN"):
                 while True:
                     sub_op = menus.menu_gestion_usuarios()
-
                     if sub_op == "1":
                         ops.registrar_nuevo_usuario()
                     elif sub_op == "2":
@@ -68,8 +66,7 @@ def ejecutar_sistema():
                     elif sub_op == "5":
                         ops.editar_datos_usuario(USUARIO_ACTUAL)
                     elif sub_op == "6":
-                        break  # Salir del sub-menú
-
+                        break
                     if sub_op != "6":
                         input("\nPresione [ENTER] para continuar...")
 
@@ -80,7 +77,6 @@ def ejecutar_sistema():
 
         # [7] INVENTARIO
         elif op == "7":
-            # El inventario pueden verlo Cajeros (VENTAS) o Bodegueros (STOCK)
             if ops.tiene_permiso(USUARIO_ACTUAL, "VENTAS") or ops.tiene_permiso(
                 USUARIO_ACTUAL, "STOCK"
             ):
@@ -93,7 +89,7 @@ def ejecutar_sistema():
             if verificar("VENTAS"):
                 ops.registrar_venta()
 
-        # [9] REPORTES Y CIERRE (Requiere permiso REPORTES)
+        # [9] REPORTES Y CIERRE
         elif op == "9":
             if verificar("REPORTES"):
                 while True:
@@ -112,8 +108,12 @@ def ejecutar_sistema():
             if verificar("CLIENTES"):
                 menus.menu_gestion_clientes()
 
-        # [11] SALIR
+        # [11] SEGURIDAD (Ver código)
         elif op == "11":
+            ops.ver_mi_codigo_seguridad(USUARIO_ACTUAL)
+
+        # [12] SALIR
+        elif op == "12" or op.lower() == "salir":
             print("👋 ¡Hasta luego!")
             break
 

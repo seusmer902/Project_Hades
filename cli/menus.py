@@ -1,13 +1,59 @@
-# menus.py
-# Cambio de rutas: Importamos desde core
 from core.utils import limpiar_pantalla
 from core.datos import PERMISOS_DISPONIBLES, ROLES_PLANTILLA
 
 
+# --- MENÚS DE ACCESO ---
+def mostrar_menu_inicio_sesion():
+    limpiar_pantalla()
+    print("=" * 40)
+    print("      🔐 BIENVENIDO A HADES POS")
+    print("=" * 40)
+    print("1. Iniciar Sesión (Personal y Clientes)")
+    print("2. Registrarse como EMPLEADO (Solicitud)")
+    print("3. Olvidé mi Usuario / Contraseña")
+    print("-" * 40)
+    print("4. 🛍️  ENTRAR COMO INVITADO (Ver Catálogo)")
+    print("-" * 40)
+    print("5. Salir")
+    return input("\n>> Opción: ")
+
+
+def menu_fallo_intentos():
+    print("\n⚠️ ¡Aviso de Seguridad!")
+    print("1. Olvidé mi contraseña (Recuperar)")
+    print("2. Reiniciar intentos (Volver a probar)")
+    print("3. Salir del programa")
+    return input(">> ¿Qué desea hacer?: ")
+
+
+# --- MENÚS DE INVITADO / CLIENTE ---
+def menu_modo_invitado(items_carrito):
+    limpiar_pantalla()
+    print(f"🛍️  MODO CLIENTE/INVITADO | Carrito: {items_carrito} items")
+    print("=" * 40)
+    print("1. Ver Catálogo de Productos")
+    print("2. Agregar Producto al Carrito")
+    print("3. Ver mi Carrito")
+    print("4. ✅ FINALIZAR COMPRA (Checkout)")
+    print("5. Salir / Cerrar Sesión")
+    return input("\n>> Opción: ")
+
+
+def menu_checkout_cliente():
+    print("\n--- 💳 CHECKOUT / FINALIZAR ---")
+    print("Para procesar su compra, elija una opción:")
+    print("1. 👤 Ya tengo cuenta (Iniciar Sesión)")
+    print("2. 📝 Registrarme ahora (Crear cuenta y guardar datos)")
+    print("3. 👻 Continuar como Invitado (Solo datos de factura)")
+    print("4. Cancelar")
+    return input(">> Seleccione: ")
+
+
+# --- MENÚS DE EMPLEADO (Los clásicos) ---
 def mostrar_menu_principal(usuario, rol):
     limpiar_pantalla()
     print("=" * 50)
-    print(f" SISTEMA HADES - TERMINAL (V-1.6.4)")
+    print(f" SISTEMA HADES - TERMINAL (V-2.1)")
     print(f" Usuario: {usuario} | Rol: {rol}")
     print("=" * 50)
     print("\n[ ADMINISTRACIÓN ]")
@@ -22,7 +68,9 @@ def mostrar_menu_principal(usuario, rol):
     print("8. Registrar Venta (Caja) 🛒")
     print("9. Reportes y Cierre de Caja 📉")
     print("10. Gestión de Clientes 👥")
-    print("\n11. Salir")
+    print("\n[ SEGURIDAD ]")
+    print("11. Ver MI CÓDIGO DE RECUPERACIÓN 🔐")
+    print("\n12. Salir")
     return input("\n>> Seleccione opción: ")
 
 
@@ -36,6 +84,9 @@ def menu_reportes():
 
 
 def menu_gestion_clientes():
+    # Evitamos circular import importando dentro
+    import cli.operaciones as ops
+
     while True:
         limpiar_pantalla()
         print("--- 👥 GESTIÓN DE CLIENTES ---")
@@ -44,9 +95,6 @@ def menu_gestion_clientes():
         print("3. Buscar Cliente (Detalles)")
         print("4. Volver")
         op = input("\n>> Seleccione: ")
-
-        # Corrección de ruta: Importamos operaciones desde cli
-        import cli.operaciones as ops
 
         if op == "1":
             ops.registrar_cliente_interactivo()
@@ -95,24 +143,19 @@ def interfaz_modificar_permisos(usuario, rol_actual, permisos_actuales):
     print(f"🔧 EDITANDO PERMISOS DE: {usuario}")
     print(f" Rol actual: {rol_actual}")
     print("-" * 50)
-    print("Instrucciones: Escribe 'S' para activar, 'N' para desactivar.")
-    print("             Presiona [ENTER] para dejarlo como está.")
-    print("-" * 50)
-    nuevos_permisos = []
-    for clave, descripcion in PERMISOS_DISPONIBLES.items():
+    nuevos = []
+    for clave, desc in PERMISOS_DISPONIBLES.items():
         tiene = clave in permisos_actuales
-        estado_icon = "✅ SI" if tiene else "❌ NO"
-        resp = input(
-            f"  [{estado_icon}] {clave} ({descripcion}) -> Nuevo estado? "
-        ).upper()
-        if resp == "S":
-            nuevos_permisos.append(clave)
-        elif resp == "N":
+        icon = "✅ SI" if tiene else "❌ NO"
+        r = input(f"  [{icon}] {clave} ({desc}) -> Nuevo estado? (S/N): ").upper()
+        if r == "S":
+            nuevos.append(clave)
+        elif r == "N":
             pass
         else:
             if tiene:
-                nuevos_permisos.append(clave)
-    return nuevos_permisos
+                nuevos.append(clave)
+    return nuevos
 
 
 def menu_seleccion_factura():

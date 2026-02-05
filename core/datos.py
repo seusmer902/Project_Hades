@@ -1,23 +1,27 @@
-# datos.py
 import json
 import os
+import hashlib
+import random
+import string
 
-# Cambio de ruta: Importamos desde el mismo paquete
+# Importamos configuración desde el mismo paquete
 from .config import (
     ARCHIVO_DATOS,
     ARCHIVO_VENTAS,
     INVENTARIO_INICIAL,
     ARCHIVO_CLIENTES,
     ARCHIVO_USUARIOS,
+    ARCHIVO_PENDIENTES,
 )
 
-# Variables Globales (Sin cambios)
+# --- BASES DE DATOS EN MEMORIA ---
 inventario_db = {}
 ventas_db = []
 clientes_db = {}
 usuarios_db = {}
+pendientes_db = {}
 
-# Definición de Permisos y Roles (Sin cambios)
+# --- ROLES Y PERMISOS (¡AQUÍ ESTABA EL ERROR!) ---
 PERMISOS_DISPONIBLES = {
     "VENTAS": "Acceso a Caja y Facturación",
     "STOCK": "Movimientos de Entrada/Salida",
@@ -25,6 +29,7 @@ PERMISOS_DISPONIBLES = {
     "CLIENTES": "Registrar y Ver Clientes",
     "REPORTES": "Ver Historial de Ventas y Dinero",
     "ADMIN": "Gestión Total (Usuarios y Config)",
+    "COMPRA_SELF": "Permiso para comprar como cliente",  # Nuevo
 }
 
 ROLES_PLANTILLA = {
@@ -32,77 +37,109 @@ ROLES_PLANTILLA = {
     "Cajero": ["VENTAS", "CLIENTES"],
     "Bodeguero": ["STOCK", "PROD"],
     "Supervisor": ["VENTAS", "STOCK", "CLIENTES", "REPORTES"],
+    "Cliente": ["COMPRA_SELF"],  # ROL NUEVO PARA INVITADOS
 }
 
 
-# Funciones de Carga y Guardado (Lógica original intacta)
-def cargar_datos_sistema():
-    global inventario_db, ventas_db, clientes_db, usuarios_db
+# --- UTILIDADES ---
+def generar_codigo_recuperacion():
+    chars = string.ascii_uppercase + string.digits
+    return "".join(random.choice(chars) for _ in range(6))
 
-    # 1. Cargar Inventario
+
+# --- CARGA DE DATOS ---
+def cargar_datos_sistema():
+    global inventario_db, ventas_db, clientes_db, usuarios_db, pendientes_db
+
+    # 1. Inventario
     if os.path.exists(ARCHIVO_DATOS):
         try:
             with open(ARCHIVO_DATOS, "r", encoding="utf-8") as f:
-                inventario_db = json.load(f)
+                data = json.load(f)
+                inventario_db.clear()
+                inventario_db.update(data)
         except:
-            inventario_db = {}
+            inventario_db.clear()
     else:
-        inventario_db = INVENTARIO_INICIAL.copy()
+        inventario_db.clear()
+        inventario_db.update(INVENTARIO_INICIAL)
         guardar_inventario()
 
-    # 2. Cargar Ventas
+    # 2. Ventas
     if os.path.exists(ARCHIVO_VENTAS):
         try:
             with open(ARCHIVO_VENTAS, "r", encoding="utf-8") as f:
-                ventas_db = json.load(f)
+                data = json.load(f)
+                ventas_db[:] = data
         except:
-            ventas_db = []
+            ventas_db[:] = []
     else:
-        ventas_db = []
+        ventas_db[:] = []
 
-    # 3. Cargar Clientes
+    # 3. Clientes
     if os.path.exists(ARCHIVO_CLIENTES):
         try:
             with open(ARCHIVO_CLIENTES, "r", encoding="utf-8") as f:
-                clientes_db = json.load(f)
+                data = json.load(f)
+                clientes_db.clear()
+                clientes_db.update(data)
         except:
-            clientes_db = {}
+            clientes_db.clear()
     else:
-        clientes_db = {}
+        clientes_db.clear()
 
-    # 4. Cargar Usuarios
+    # 4. Usuarios
     if os.path.exists(ARCHIVO_USUARIOS):
         try:
             with open(ARCHIVO_USUARIOS, "r", encoding="utf-8") as f:
-                usuarios_db = json.load(f)
+                data = json.load(f)
+                usuarios_db.clear()
+                usuarios_db.update(data)
 
-                # Migración automática de permisos (Tu lógica original)
-                guardar = False
-                for u, data in usuarios_db.items():
-                    if "permisos" not in data:
-                        rol_viejo = data.get("rol", "Cajero")
-                        if rol_viejo in ROLES_PLANTILLA:
-                            data["permisos"] = ROLES_PLANTILLA[rol_viejo]
-                        else:
-                            data["permisos"] = ROLES_PLANTILLA["Cajero"]
-                        guardar = True
-                if guardar:
+                # Migración de campos nuevos
+                cambios = False
+                for u, val in usuarios_db.items():
+                    if "bloqueado" not in val:
+                        val["bloqueado"] = False
+                        cambios = True
+                    if "codigo_recuperacion" not in val:
+                        val["codigo_recuperacion"] = "ADMIN1"
+                        cambios = True
+                if cambios:
                     guardar_usuarios()
         except:
-            usuarios_db = {}
+            usuarios_db.clear()
     else:
-        # Admin por defecto
-        print(">> Creando Admin inicial...")
-        usuarios_db = {
-            "admin": {
-                "pass_hash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
-                "rol": "Administrador",
-                "permisos": ROLES_PLANTILLA["Administrador"],
+        # Admin por defecto (Pass: 123)
+        pass_hash = hashlib.sha256("123".encode()).hexdigest()
+        usuarios_db.clear()
+        usuarios_db.update(
+            {
+                "admin": {
+                    "pass_hash": pass_hash,
+                    "rol": "Administrador",
+                    "permisos": ROLES_PLANTILLA["Administrador"],
+                    "bloqueado": False,
+                    "codigo_recuperacion": "ADMIN1",
+                }
             }
-        }
+        )
         guardar_usuarios()
 
+    # 5. Pendientes
+    if os.path.exists(ARCHIVO_PENDIENTES):
+        try:
+            with open(ARCHIVO_PENDIENTES, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                pendientes_db.clear()
+                pendientes_db.update(data)
+        except:
+            pendientes_db.clear()
+    else:
+        pendientes_db.clear()
 
+
+# --- GUARDADO ---
 def guardar_inventario():
     with open(ARCHIVO_DATOS, "w", encoding="utf-8") as f:
         json.dump(inventario_db, f, indent=4)
@@ -121,3 +158,25 @@ def guardar_clientes():
 def guardar_usuarios():
     with open(ARCHIVO_USUARIOS, "w", encoding="utf-8") as f:
         json.dump(usuarios_db, f, indent=4)
+
+
+def guardar_pendientes():
+    with open(ARCHIVO_PENDIENTES, "w", encoding="utf-8") as f:
+        json.dump(pendientes_db, f, indent=4)
+
+
+# --- ACCIONES ---
+def resetear_password(usuario, nueva_pass):
+    if usuario in usuarios_db:
+        usuarios_db[usuario]["pass_hash"] = hashlib.sha256(
+            nueva_pass.encode()
+        ).hexdigest()
+        guardar_usuarios()
+        return True
+    return False
+
+
+def bloquear_usuario(usuario):
+    if usuario in usuarios_db:
+        usuarios_db[usuario]["bloqueado"] = True
+        guardar_usuarios()

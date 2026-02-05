@@ -1,0 +1,18 @@
+========================================
+TIENDA HADES - TICKET :40
+========================================
+Fecha: 04/02/2026 23:53
+Cliente: Manuel
+RUC/CI:  1316299187
+Nivel:   Cliente
+----------------------------------------
+CANT  PRODUCTO               SUBTOTAL
+----------------------------------------
+3     Cuaderno Universita  $     4.50
+1     Resma Papel Bond A4  $     4.50
+----------------------------------------
+SUBTOTAL:     $      9.00
+TOTAL A PAGAR: $      9.00
+========================================
+Ganaste 9 Puntos Hades!
+Gracias por tu preferencia.
