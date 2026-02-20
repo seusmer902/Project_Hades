@@ -22,8 +22,7 @@ CARPETA_REPORTES = os.path.join(ASSETS_DIR, "reportes")
 ARCHIVO_DATOS = os.path.join(DB_DIR, "inventario.json")
 ARCHIVO_CLIENTES = os.path.join(DB_DIR, "clientes.json")
 ARCHIVO_PENDIENTES = os.path.join(DB_DIR, "usuarios_pendientes.json")
-
-# --- NUEVOS ARCHIVOS DE LA V-1.7.3 (¡ESTO FALTABA!) ---
+ARCHIVO_FINANZAS = os.path.join(DB_DIR, "finanzas.json")
 ARCHIVO_EMPLEADOS = os.path.join(DB_DIR, "empleados.json")
 ARCHIVO_CLIENTES_LOGIN = os.path.join(DB_DIR, "clientes_login.json")
 ARCHIVO_USUARIOS_LEGACY = os.path.join(

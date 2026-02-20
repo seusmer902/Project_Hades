@@ -740,6 +740,27 @@ def consultar_inventario():
     print("-" * 40)
 
 
+def check_stock_critico():
+    """
+    Escanea el inventario y devuelve una lista de lo que urge comprar.
+    """
+    from core.datos import inventario_db
+
+    faltantes = []
+
+    for ref, item in inventario_db.items():
+        if item["stock"] <= item["stock_minimo"]:
+            faltantes.append(
+                {
+                    "ref": ref,
+                    "nombre": item["nombre"],
+                    "stock": item["stock"],
+                    "min": item["stock_minimo"],
+                }
+            )
+    return faltantes
+
+
 def registrar_venta():
     print("\n--- 🛒 NUEVA VENTA (CAJA) ---")
     carrito = []

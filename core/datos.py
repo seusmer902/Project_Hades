@@ -5,6 +5,7 @@ import hashlib
 import random
 import string
 from datetime import datetime
+from .config import ARCHIVO_FINANZAS
 
 # Importamos las nuevas rutas
 from .config import (
@@ -24,6 +25,7 @@ ventas_db = []
 clientes_db = {}
 pendientes_db = {}
 nombre_archivo_ventas_hoy = ""
+capital_db = {"capital_disponible": 0.0, "moneda": "USD"}
 
 # --- DOBLE ALMACÉN ---
 empleados_db = {}  # Solo Staff
@@ -57,7 +59,7 @@ def generar_codigo_recuperacion():
 
 def cargar_datos_sistema():
     global inventario_db, ventas_db, clientes_db, usuarios_db, pendientes_db
-    global empleados_db, clientes_login_db, nombre_archivo_ventas_hoy
+    global empleados_db, clientes_login_db, nombre_archivo_ventas_hoy, capital_db
 
     # 1. INVENTARIO
     if os.path.exists(ARCHIVO_DATOS):
@@ -169,6 +171,15 @@ def cargar_datos_sistema():
     else:
         pendientes_db.clear()
 
+    # NUEVO: Cargar Finanzas
+    if os.path.exists(ARCHIVO_FINANZAS):
+        with open(ARCHIVO_FINANZAS, "r") as f:
+            capital_db = json.load(f)
+    else:
+        # Si no existe, lo creamos con un capital inicial (ej: $500 para pruebas)
+        capital_db = {"capital_disponible": 500.0, "moneda": "USD"}
+        guardar_finanzas()
+
 
 # --- FUNCIONES DE GUARDADO ---
 def guardar_inventario():
@@ -200,6 +211,11 @@ def guardar_clientes_login():
 def guardar_pendientes():
     with open(ARCHIVO_PENDIENTES, "w", encoding="utf-8") as f:
         json.dump(pendientes_db, f, indent=4)
+
+
+def guardar_finanzas():
+    with open(ARCHIVO_FINANZAS, "w") as f:
+        json.dump(capital_db, f, indent=4)
 
 
 # ========================================================

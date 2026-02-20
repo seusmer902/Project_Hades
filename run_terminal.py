@@ -16,6 +16,19 @@ def verificar(permiso):
         return False
 
 
+# En run_terminal.py, dentro de ejecutar_sistema()
+def mostrar_resumen_inicial():
+    from core.datos import capital_db
+    import cli.operaciones as ops
+
+    print(f"\n💰 CAPITAL DISPONIBLE: ${capital_db['capital_disponible']:.2f}")
+
+    alertas = ops.check_stock_critico()
+    if alertas:
+        print(f"⚠️  ATENCIÓN: Tienes {len(alertas)} productos con stock bajo.")
+        print("Vaya a la opción de 'Suministros' para reponer stock.")
+
+
 def ejecutar_sistema():
     global USUARIO_ACTUAL
 

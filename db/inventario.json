@@ -3,96 +3,128 @@
         "nombre": "Cuaderno Universitario 100h",
         "categoria": "Cuadernos",
         "precio": 1.5,
-        "stock": 64
+        "stock": 64,
+        "costo": 0.9,
+        "stock_minimo": 5
     },
     "PAP-002": {
         "nombre": "Resma Papel Bond A4",
         "categoria": "Papel",
         "precio": 4.5,
-        "stock": 20
+        "stock": 20,
+        "costo": 2.7,
+        "stock_minimo": 5
     },
     "PAP-003": {
         "nombre": "Carpeta Plastica Roja",
         "categoria": "Oficina",
         "precio": 0.85,
-        "stock": 55
+        "stock": 55,
+        "costo": 0.51,
+        "stock_minimo": 5
     },
     "PAP-004": {
         "nombre": "Juego Geometrico",
         "categoria": "Utiles",
         "precio": 2.25,
-        "stock": 11
+        "stock": 11,
+        "costo": 1.35,
+        "stock_minimo": 5
     },
     "PAP-005": {
         "nombre": "Compas",
         "categoria": "Utiles",
         "precio": 1.5,
-        "stock": 44
+        "stock": 44,
+        "costo": 0.9,
+        "stock_minimo": 5
     },
     "PAP-006": {
         "nombre": "Borrador de Queso",
         "categoria": "Utiles",
         "precio": 0.5,
-        "stock": 71
+        "stock": 71,
+        "costo": 0.3,
+        "stock_minimo": 5
     },
     "PAP-007": {
         "nombre": "Lapis",
         "categoria": "Escritura",
         "precio": 0.5,
-        "stock": 21
+        "stock": 21,
+        "costo": 0.3,
+        "stock_minimo": 5
     },
     "PAP-008": {
         "nombre": "Lapis Mongul HB",
         "categoria": "Escritura",
         "precio": 0.4,
-        "stock": 95
+        "stock": 95,
+        "costo": 0.24,
+        "stock_minimo": 5
     },
     "PAP-009": {
-        "nombre": "Esfero Negro Bic",
+        "nombre": "Esfero Negro",
         "categoria": "Escritura",
         "precio": 0.6,
-        "stock": 198
+        "stock": 198,
+        "costo": 0.36,
+        "stock_minimo": 5
     },
     "PAP-010": {
         "nombre": "Esfero Bic Rojo",
         "categoria": "Utiles",
         "precio": 0.6,
-        "stock": 197
+        "stock": 197,
+        "costo": 0.36,
+        "stock_minimo": 5
     },
     "PAP-011": {
-        "nombre": "Esfero Rojo Bic",
+        "nombre": "Esfero Rojo",
         "categoria": "Escritura",
         "precio": 0.6,
-        "stock": 199
+        "stock": 199,
+        "costo": 0.36,
+        "stock_minimo": 5
     },
     "PAP-012": {
         "nombre": "Marcador Negro",
         "categoria": "Escritura",
         "precio": 0.75,
-        "stock": 71
+        "stock": 24,
+        "costo": 0.45,
+        "stock_minimo": 5
     },
     "PAP-013": {
         "nombre": "Marcador Azul",
         "categoria": "Escritura",
         "precio": 0.75,
-        "stock": 71
+        "stock": 71,
+        "costo": 0.45,
+        "stock_minimo": 5
     },
     "PAP-014": {
         "nombre": "Marcador Rojo",
         "categoria": "Escritura",
         "precio": 0.75,
-        "stock": 73
+        "stock": 73,
+        "costo": 0.45,
+        "stock_minimo": 5
     },
     "PAP-015": {
         "nombre": "Escuadra",
         "categoria": "Utiles",
         "precio": 0.5,
-        "stock": 57
+        "stock": 57,
+        "costo": 0.3,
+        "stock_minimo": 5
     },
     "PAP-016": {
         "nombre": "PLastilina de colores 12",
         "categoria": "Utile",
         "precio": 1.5,
-        "stock": 50
+        "stock": 50,
+        "costo": 0.9,
+        "stock_minimo": 5
     }
 }
