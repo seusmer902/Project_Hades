@@ -41,7 +41,6 @@ def mostrar_menu_principal(usuario, rol, alertas=0):
     print(f" 🏢 PANEL CENTRAL | Usuario: {usuario} | Rol: {rol}")
     print("═" * 45)
 
-    # Alerta visual si hay productos con stock bajo
     if alertas > 0:
         print(f" ⚠️  ATENCIÓN: TIENE {alertas} PRODUCTOS CON STOCK BAJO")
         print("─" * 45)
@@ -49,8 +48,9 @@ def mostrar_menu_principal(usuario, rol, alertas=0):
     print("  1. 🔍 Ver y Buscar Inventario")
     print("  2. 📦 Mantenimiento de Productos (CRUD)")
     print("  3. 🔄 Movimientos de Stock (Entradas/Salidas)")
-    print("  4. 👥 Gestión de Personal")
-    print("  5. 🚪 Cerrar Sesión")
+    print("  4. 👥 Gestión de Personal y Roles")
+    print("  5. 🛡️  Mi Perfil (Ver Código de Seguridad)")
+    print("  6. 🚪 Cerrar Sesión")
     print("═" * 45)
     return input(">> Seleccione una opción: ").strip()
 
@@ -84,9 +84,19 @@ def menu_movimientos():
 
 
 def menu_personal():
-    print("\n--- GESTIÓN DE PERSONAL ---")
+    print("\n--- GESTIÓN DE PERSONAL Y ROLES ---")
     print("  1. Añadir nuevo empleado")
     print("  2. Bloquear / Desbloquear empleado")
     print("  3. Eliminar empleado (Baja definitiva)")
+    print("  4. Gestión de Roles y Permisos")
+    print("  5. Volver")
+    return input(">> Opción: ").strip()
+
+
+def menu_roles():
+    print("\n--- GESTIÓN DE ROLES ---")
+    print("  1. Listar roles existentes")
+    print("  2. Crear nuevo rol")
+    print("  3. Editar permisos de un rol")
     print("  4. Volver")
     return input(">> Opción: ").strip()

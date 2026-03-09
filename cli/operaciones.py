@@ -3,32 +3,32 @@ import hashlib
 import getpass
 from datetime import datetime
 
+# IMPORTACIÓN CORREGIDA: Ya no importamos ROLES_PLANTILLA, ahora usamos roles_db
 from core.datos import (
     inventario_db,
     usuarios_db,
     movimientos_db,
+    roles_db,
     guardar_inventario,
     guardar_empleados,
     guardar_movimientos,
+    guardar_roles,
     bloquear_usuario,
-    ROLES_PLANTILLA,
 )
 from cli import menus
 
-# Opcional: Si tienes el generador de QR en utils, lo importamos. Si no, usamos un placeholder.
 try:
     from core.utils import generar_qr_producto
 except ImportError:
 
     def generar_qr_producto(codigo, texto):
-        pass  # Placeholder hasta conectar tu generador QR real
+        pass
 
 
 # ==========================================
 # 1. MÓDULO DE SEGURIDAD Y ACCESO
 # ==========================================
 def flujo_login():
-    """Maneja el inicio de sesión con 3 intentos y 3 reinicios permitidos."""
     max_reinicios = 3
     reinicio = 0
 
@@ -74,7 +74,6 @@ def flujo_login():
 
 
 def recuperar_acceso(user=None):
-    """Recuperación mediante código único alfanumérico."""
     print("\n--- RECUPERACIÓN DE CUENTA ---")
     if not user:
         user = input("Ingrese su usuario: ").strip()
@@ -90,6 +89,21 @@ def recuperar_acceso(user=None):
             guardar_empleados()
             return
     print("❌ Datos incorrectos. Operación cancelada.")
+
+
+def ver_mi_codigo_seguridad(usuario):
+    """Permite al usuario logueado ver su propio código de recuperación."""
+    print("\n--- MI CÓDIGO DE RECUPERACIÓN ---")
+    pwd = getpass.getpass("Por seguridad, ingrese su contraseña actual: ")
+    h = hashlib.sha256(pwd.encode()).hexdigest()
+
+    if usuarios_db[usuario]["pass_hash"] == h:
+        print(
+            f"✅ Su código único es: {usuarios_db[usuario].get('codigo_recuperacion')}"
+        )
+        print("⚠️  Guárdelo en un lugar seguro.")
+    else:
+        print("❌ Contraseña incorrecta. Acceso denegado.")
 
 
 # ==========================================
@@ -123,8 +137,6 @@ def registrar_producto():
         "stock_minimo": stock_min,
     }
     guardar_inventario()
-
-    # Generación de QR requerida por el proyecto
     generar_qr_producto(codigo, f"Código: {codigo}\nNombre: {nombre}\nMarca: {marca}")
     print("✅ Producto registrado y código QR generado.")
 
@@ -180,10 +192,9 @@ def eliminar_producto():
 
 
 # ==========================================
-# 3. MÓDULO DE INVENTARIO (CONSULTAS Y FILTROS)
+# 3. MÓDULO DE INVENTARIO (CONSULTAS)
 # ==========================================
 def obtener_alertas_stock():
-    """Devuelve la cantidad de productos con stock crítico."""
     return sum(
         1 for p in inventario_db.values() if p["stock"] <= p.get("stock_minimo", 5)
     )
@@ -213,7 +224,6 @@ def consultar_inventario():
     elif opcion in ["2", "3", "4", "5"]:
         termino = input("Ingrese el término de búsqueda: ").strip().lower()
         resultados = {}
-
         for cod, prod in inventario_db.items():
             if opcion == "2" and termino in prod["nombre"].lower():
                 resultados[cod] = prod
@@ -223,7 +233,6 @@ def consultar_inventario():
                 resultados[cod] = prod
             elif opcion == "5" and termino in prod.get("marca", "").lower():
                 resultados[cod] = prod
-
         imprimir_tabla_inventario(resultados)
 
 
@@ -231,10 +240,6 @@ def consultar_inventario():
 # 4. MÓDULO DE MOVIMIENTOS DE STOCK (KARDEX)
 # ==========================================
 def registrar_movimiento(usuario, tipo_movimiento):
-    """
-    tipo_movimiento: 'ENTRADA' o 'SALIDA'
-    Incluye validación matemática para evitar stock negativo.
-    """
     print(f"\n--- REGISTRO DE {tipo_movimiento} ---")
     codigo = input("Código del producto: ").strip().upper()
 
@@ -255,7 +260,6 @@ def registrar_movimiento(usuario, tipo_movimiento):
             print("❌ La cantidad debe ser mayor a cero.")
             return
 
-        # VALIDACIÓN CRÍTICA: Impedir stock negativo
         if tipo_movimiento == "SALIDA" and cant > prod["stock"]:
             print(
                 f"❌ ERROR LÓGICO: No puede retirar {cant} unidades. Solo hay {prod['stock']} disponibles."
@@ -266,9 +270,8 @@ def registrar_movimiento(usuario, tipo_movimiento):
         print("❌ Error: Ingrese un número entero.")
         return
 
-    motivo = input("Motivo / Documento de referencia: ").strip() or "No especificado"
+    motivo = input("Motivo / Documento: ").strip() or "No especificado"
 
-    # Aplicar matemática
     if tipo_movimiento == "ENTRADA":
         prod["stock"] += cant
     else:
@@ -276,7 +279,6 @@ def registrar_movimiento(usuario, tipo_movimiento):
 
     guardar_inventario()
 
-    # Guardar en historial de movimientos
     movimiento = {
         "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "tipo": tipo_movimiento,
@@ -287,12 +289,11 @@ def registrar_movimiento(usuario, tipo_movimiento):
     }
     movimientos_db.append(movimiento)
     guardar_movimientos()
-
     print(f"✅ Movimiento registrado. Nuevo stock: {prod['stock']}")
 
 
 # ==========================================
-# 5. MÓDULO DE GESTIÓN DE PERSONAL (RRHH)
+# 5. MÓDULO DE RRHH Y ROLES (DINÁMICOS)
 # ==========================================
 def listar_personal():
     print(f"\n{'USUARIO':<15} | {'ROL':<15} | {'ESTADO':<15} | {'CÓDIGO RECUP.'}")
@@ -312,9 +313,12 @@ def registrar_empleado():
         return
 
     pwd = getpass.getpass("Contraseña: ")
-    rol = input("Rol (Administrador/Bodeguero): ").strip().capitalize()
+    print(f"Roles disponibles: {', '.join(roles_db.keys())}")
+    rol = input("Rol asignado: ").strip().capitalize()
 
-    permisos = ROLES_PLANTILLA.get(rol, ROLES_PLANTILLA["Bodeguero"])
+    # CORRECCIÓN: Toma los permisos de la base de roles (por defecto Bodeguero si se equivoca)
+    permisos = roles_db.get(rol, roles_db.get("Bodeguero", []))
+
     from core.datos import generar_codigo_recuperacion
 
     codigo_rec = generar_codigo_recuperacion()
@@ -334,8 +338,7 @@ def gestionar_estado_empleado():
     listar_personal()
     user = input("\nUsuario a gestionar: ").strip()
     if user in usuarios_db:
-        estado_actual = usuarios_db[user].get("bloqueado", False)
-        if estado_actual:
+        if usuarios_db[user].get("bloqueado", False):
             if (
                 input(f"El usuario está BLOQUEADO. ¿Desbloquear? (S/N): ").upper()
                 == "S"
@@ -369,3 +372,52 @@ def eliminar_empleado():
             print("✅ Empleado eliminado del sistema.")
     else:
         print("❌ Usuario no encontrado.")
+
+
+# --- GESTIÓN DE ROLES ---
+def listar_roles():
+    print("\n--- ROLES DEL SISTEMA ---")
+    for r, perms in roles_db.items():
+        print(f"- {r}: {', '.join(perms)}")
+
+
+def crear_rol():
+    print("\n--- CREAR NUEVO ROL ---")
+    nuevo_rol = input("Nombre del nuevo rol (ej. Supervisor): ").strip().capitalize()
+    if nuevo_rol in roles_db:
+        print("❌ Ese rol ya existe.")
+        return
+
+    print("Permisos válidos: ADMIN, PROD, STOCK, RRHH, MOVIMIENTOS, VER_STOCK")
+    permisos_str = input("Ingrese los permisos separados por coma: ").strip().upper()
+    permisos_lista = [p.strip() for p in permisos_str.split(",") if p.strip()]
+
+    roles_db[nuevo_rol] = permisos_lista
+    guardar_roles()
+    print(f"✅ Rol '{nuevo_rol}' creado con éxito.")
+
+
+def editar_rol():
+    listar_roles()
+    rol_editar = input("\nIngrese el nombre del rol a editar: ").strip().capitalize()
+    if rol_editar not in roles_db:
+        print("❌ El rol no existe.")
+        return
+    if rol_editar == "Administrador":
+        print("⛔ No se pueden modificar los permisos del Administrador principal.")
+        return
+
+    print("Permisos válidos: ADMIN, PROD, STOCK, RRHH, MOVIMIENTOS, VER_STOCK")
+    permisos_str = input("Nuevos permisos separados por coma: ").strip().upper()
+    permisos_lista = [p.strip() for p in permisos_str.split(",") if p.strip()]
+
+    roles_db[rol_editar] = permisos_lista
+    guardar_roles()
+
+    # Actualiza los permisos de todos los empleados que tengan este rol
+    for u, datos in usuarios_db.items():
+        if datos.get("rol") == rol_editar:
+            datos["permisos"] = permisos_lista
+    guardar_empleados()
+
+    print(f"✅ Rol '{rol_editar}' y usuarios asociados actualizados.")

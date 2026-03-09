@@ -5,24 +5,21 @@ import cli.menus as menus
 
 
 def ejecutar_sistema():
-    # Carga inicial de datos en memoria (Inventario, Empleados, Movimientos)
+    # Carga inicial de datos en memoria (Inventario, Empleados, Movimientos, Roles)
     datos.cargar_datos_sistema()
     USUARIO_ACTUAL = None
 
-    # Bucle infinito para mantener el sistema vivo
     while True:
         if USUARIO_ACTUAL is None:
             # --- ZONA PÚBLICA (NO LOGUEADO) ---
             op = menus.mostrar_menu_inicio_sesion()
 
             if op == "1":
-                # Paso 2: Inicio de sesión
                 USUARIO_ACTUAL = ops.flujo_login()
             elif op == "2":
                 ops.recuperar_acceso()
                 input("\n[Presione ENTER para continuar...]")
             elif op == "3":
-                # Paso 7: Salida del sistema de forma segura
                 print("👋 Cerrando el Sistema de Control de Inventarios...")
                 break
             else:
@@ -30,29 +27,24 @@ def ejecutar_sistema():
 
         else:
             # --- ZONA PRIVADA (LOGUEADO) ---
-            # Obtenemos los datos del usuario actual para validar permisos
             user_data = datos.usuarios_db.get(USUARIO_ACTUAL, {})
             rol_str = user_data.get("rol", "Desconocido")
             es_admin = "ADMIN" in user_data.get("permisos", [])
 
-            # Calculamos las alertas de stock antes de mostrar el menú
             alertas_actuales = ops.obtener_alertas_stock()
 
-            # Paso 3: Menú principal
+            # Muestra el menú principal con las alertas en tiempo real
             op_main = menus.mostrar_menu_principal(
                 USUARIO_ACTUAL, rol_str, alertas_actuales
             )
 
             # --- RUTEADOR DE OPCIONES ---
             if op_main == "1":
-                # Paso 5: Consulta de inventario
                 ops.consultar_inventario()
 
             elif op_main == "2":
-                # Módulo de Mantenimiento (CRUD)
                 sub_op = menus.menu_mantenimiento()
                 if sub_op == "1":
-                    # Paso 4: Registro de productos
                     ops.registrar_producto()
                 elif sub_op == "2":
                     ops.editar_producto()
@@ -63,7 +55,6 @@ def ejecutar_sistema():
                         print("⛔ Solo el Administrador puede eliminar productos.")
 
             elif op_main == "3":
-                # Paso 6: Entrada y salida de productos para mantener el stock actualizado
                 sub_op = menus.menu_movimientos()
                 if sub_op == "1":
                     ops.registrar_movimiento(USUARIO_ACTUAL, "ENTRADA")
@@ -71,8 +62,8 @@ def ejecutar_sistema():
                     ops.registrar_movimiento(USUARIO_ACTUAL, "SALIDA")
 
             elif op_main == "4":
-                # Gestión de Personal
-                if es_admin:
+                # Seguridad: Solo Admin o RRHH puede entrar aquí
+                if es_admin or "RRHH" in user_data.get("permisos", []):
                     sub_op = menus.menu_personal()
                     if sub_op == "1":
                         ops.registrar_empleado()
@@ -80,18 +71,29 @@ def ejecutar_sistema():
                         ops.gestionar_estado_empleado()
                     elif sub_op == "3":
                         ops.eliminar_empleado()
+                    elif sub_op == "4":
+                        rol_op = menus.menu_roles()
+                        if rol_op == "1":
+                            ops.listar_roles()
+                        elif rol_op == "2":
+                            ops.crear_rol()
+                        elif rol_op == "3":
+                            ops.editar_rol()
                 else:
                     print("⛔ Acceso denegado. Se requiere rol de Administrador.")
 
             elif op_main == "5":
+                ops.ver_mi_codigo_seguridad(USUARIO_ACTUAL)
+
+            elif op_main == "6":
                 print(f"👋 Sesión cerrada exitosamente para: {USUARIO_ACTUAL}")
-                USUARIO_ACTUAL = None  # Regresa al Menú de Inicio (Público)
+                USUARIO_ACTUAL = None
 
             else:
                 print("❌ Opción no reconocida.")
 
-            # Pausa dramática para que el usuario pueda leer los resultados antes de limpiar pantalla
-            if op_main in ["1", "2", "3", "4"]:
+            # Pausa para que el usuario lea los resultados antes de limpiar la pantalla
+            if op_main in ["1", "2", "3", "4", "5"]:
                 input("\n[Presione ENTER para continuar...]")
 
 
