@@ -1,27 +1,31 @@
-# utils.py
-import os
+# core/utils.py
 import qrcode
+import os
 
-# Cambio de ruta: Importamos desde el mismo paquete
-from .config import CARPETA_QR
-
-
-def limpiar_pantalla():
-    if os.name == "nt":
-        os.system("cls")
-    else:
-        os.system("clear")
+QR_DIR = os.path.join("assets", "qrcodes")
 
 
-def generar_qr(nombre_archivo, info_contenido):
-    if not os.path.exists(CARPETA_QR):
-        os.makedirs(CARPETA_QR)
+def asegurar_carpeta_qr():
+    """Crea la ruta completa si no existe."""
+    if not os.path.exists(QR_DIR):
+        os.makedirs(QR_DIR, exist_ok=True)
 
-    qr = qrcode.QRCode(version=1, box_size=10, border=4)
-    qr.add_data(info_contenido)
+
+def generar_qr_producto(codigo, datos_str):
+    """Genera un código QR individual y lo guarda en assets/qrcodes."""
+    asegurar_carpeta_qr()
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(datos_str)
     qr.make(fit=True)
 
     img = qr.make_image(fill_color="black", back_color="white")
-    ruta = f"{CARPETA_QR}/{nombre_archivo}.png"
+
+    ruta = os.path.join(QR_DIR, f"{codigo}.png")
     img.save(ruta)
-    print(f">> QR generado: {ruta}")
+    return ruta

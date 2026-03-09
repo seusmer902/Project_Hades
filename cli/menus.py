@@ -70,8 +70,9 @@ def menu_mantenimiento():
     print("\n--- MANTENIMIENTO DE PRODUCTOS ---")
     print("  1. Registrar nuevo producto")
     print("  2. Editar producto existente")
-    print("  3. Eliminar producto")
-    print("  4. Volver")
+    print("  3. Guenerar Qr")
+    print("  4. Eliminar producto")
+    print("  5. Volver")
     return input(">> Opción: ").strip()
 
 
@@ -99,4 +100,12 @@ def menu_roles():
     print("  2. Crear nuevo rol")
     print("  3. Editar permisos de un rol")
     print("  4. Volver")
+    return input(">> Opción: ").strip()
+
+
+def menu_qr():
+    print("\n--- GESTIÓN DE CÓDIGOS QR ---")
+    print("  1. Generar QR de un producto específico")
+    print("  2. Generar QR de TODO el inventario (Masivo)")
+    print("  3. Volver")
     return input(">> Opción: ").strip()

@@ -421,3 +421,24 @@ def editar_rol():
     guardar_empleados()
 
     print(f"✅ Rol '{rol_editar}' y usuarios asociados actualizados.")
+
+
+def flujo_generar_qr_unico():
+    codigo = (
+        input("Ingrese el código del producto para generar su QR: ").strip().upper()
+    )
+    if codigo in inventario_db:
+        p = inventario_db[codigo]
+        info = f"ID: {codigo}\nNombre: {p['nombre']}\nMarca: {p['marca']}\nCat: {p['categoria']}"
+        ruta = generar_qr_producto(codigo, info)
+        print(f"✅ QR generado con éxito en: {ruta}")
+    else:
+        print("❌ Producto no encontrado.")
+
+
+def flujo_generar_qr_masivo():
+    print(f"⌛ Generando QR para {len(inventario_db)} productos...")
+    for codigo, p in inventario_db.items():
+        info = f"ID: {codigo}\nNombre: {p['nombre']}\nMarca: {p['marca']}\nCat: {p['categoria']}"
+        generar_qr_producto(codigo, info)
+    print(f"✅ Se han generado {len(inventario_db)} códigos QR en la carpeta /qrcodes.")
