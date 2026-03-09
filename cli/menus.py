@@ -1,167 +1,92 @@
-# menus.py
-from core.utils import limpiar_pantalla
-from core.datos import PERMISOS_DISPONIBLES, ROLES_PLANTILLA
+# cli/menus.py
+import os
 
 
-# --- MENÚS DE ACCESO ---
+def limpiar_pantalla():
+    """Limpia la consola dependiendo del sistema operativo."""
+    os.system("cls" if os.name == "nt" else "clear")
+
+
+# ==========================================
+# MENÚS DE SEGURIDAD Y ACCESO
+# ==========================================
 def mostrar_menu_inicio_sesion():
     limpiar_pantalla()
-    print("=" * 40)
-    print("      🔐 BIENVENIDO A HADES POS")
-    print("=" * 40)
-    print("1. Iniciar Sesión (Personal y Clientes)")
-    print("2. Registrarse como EMPLEADO (Solicitud)")
-    print("3. Olvidé mi Usuario / Contraseña")
-    print("-" * 40)
-    print("4. 🛍️  ENTRAR COMO INVITADO (Ver Catálogo)")
-    print("-" * 40)
-    print("5. Salir")
-    return input("\n>> Opción: ")
+    print("\n" + "═" * 45)
+    print("       📦 SISTEMA DE CONTROL DE INVENTARIOS")
+    print("═" * 45)
+    print("  1. [🔐] Iniciar Sesión")
+    print("  2. [🔑] Recuperar Acceso")
+    print("  3. [❌] Salir del Sistema")
+    print("═" * 45)
+    return input(">> Seleccione una opción: ").strip()
 
 
-def menu_fallo_intentos():
-    print("\n⚠️ ¡Aviso de Seguridad!")
-    print("1. Olvidé mi contraseña (Recuperar)")
-    print("2. Reiniciar intentos (Volver a probar)")
-    print("3. Salir del programa")
-    return input(">> ¿Qué desea hacer?: ")
+def menu_fallo_intentos(reinicio_actual, max_reinicios):
+    print(
+        f"\n⚠️  Aviso: Múltiples intentos fallidos ({reinicio_actual}/{max_reinicios})"
+    )
+    print("  1. Olvidé mi contraseña (Recuperar)")
+    print("  2. Reiniciar intentos")
+    print("  3. Salir")
+    return input(">> ¿Qué desea hacer?: ").strip()
 
 
-# --- MENÚS DE INVITADO / CLIENTE ---
-def menu_modo_invitado(items_carrito):
+# ==========================================
+# MENÚ PRINCIPAL Y SUBMENÚS DE NAVEGACIÓN
+# ==========================================
+def mostrar_menu_principal(usuario, rol, alertas=0):
     limpiar_pantalla()
-    print(f"🛍️  MODO CLIENTE/INVITADO | Carrito: {items_carrito} items")
-    print("=" * 40)
-    print("1. Ver Catálogo de Productos")
-    print("2. Agregar Producto al Carrito")
-    print("3. Ver mi Carrito")
-    print("4. ✅ FINALIZAR COMPRA (Checkout)")
-    print("5. Salir / Cerrar Sesión")
-    return input("\n>> Opción: ")
+    print("\n" + "═" * 45)
+    print(f" 🏢 PANEL CENTRAL | Usuario: {usuario} | Rol: {rol}")
+    print("═" * 45)
+
+    # Alerta visual si hay productos con stock bajo
+    if alertas > 0:
+        print(f" ⚠️  ATENCIÓN: TIENE {alertas} PRODUCTOS CON STOCK BAJO")
+        print("─" * 45)
+
+    print("  1. 🔍 Ver y Buscar Inventario")
+    print("  2. 📦 Mantenimiento de Productos (CRUD)")
+    print("  3. 🔄 Movimientos de Stock (Entradas/Salidas)")
+    print("  4. 👥 Gestión de Personal")
+    print("  5. 🚪 Cerrar Sesión")
+    print("═" * 45)
+    return input(">> Seleccione una opción: ").strip()
 
 
-def menu_checkout_cliente():
-    print("\n--- 💳 CHECKOUT / FINALIZAR ---")
-    print("Para procesar su compra, elija una opción:")
-    print("1. 👤 Ya tengo cuenta (Iniciar Sesión)")
-    print("2. 📝 Registrarme ahora (Crear cuenta y guardar datos)")
-    print("3. 👻 Continuar como Invitado (Solo datos de factura)")
-    print("4. Cancelar")
-    return input(">> Seleccione: ")
+def menu_filtros_inventario():
+    print("\n--- BÚSQUEDA DE INVENTARIO ---")
+    print("  1. Ver todo el inventario general")
+    print("  2. Buscar por Nombre")
+    print("  3. Buscar por Código")
+    print("  4. Buscar por Categoría")
+    print("  5. Buscar por Marca")
+    print("  6. Volver")
+    return input(">> Opción: ").strip()
 
 
-# --- MENÚS DE EMPLEADO (Los clásicos) ---
-def mostrar_menu_principal(usuario, rol):
-    limpiar_pantalla()
-    print("=" * 50)
-    print(f" SISTEMA HADES - TERMINAL (V-1.7.3)")
-    print(f" Usuario: {usuario} | Rol: {rol}")
-    print("=" * 50)
-    print("\n[ ADMINISTRACIÓN ]")
-    print("1. Registrar Producto")
-    print("2. Editar Producto")
-    print("3. Eliminar Producto")
-    print("4. Regenerar QRs")
-    print("5. Gestión de Personal (Usuarios) 👮")
-    print("\n[ OPERACIÓN ]")
-    print("6. Movimientos Stock (Entrada/Salida)")
-    print("7. Consultar Inventario")
-    print("8. Registrar Venta (Caja) 🛒")
-    print("9. Reportes y Cierre de Caja 📉")
-    print("10. Gestión de Clientes 👥")
-    print("\n[ SEGURIDAD ]")
-    print("11. Ver MI CÓDIGO DE RECUPERACIÓN 🔐")
-    print("\n12. Salir")
-    return input("\n>> Seleccione opción: ")
+def menu_mantenimiento():
+    print("\n--- MANTENIMIENTO DE PRODUCTOS ---")
+    print("  1. Registrar nuevo producto")
+    print("  2. Editar producto existente")
+    print("  3. Eliminar producto")
+    print("  4. Volver")
+    return input(">> Opción: ").strip()
 
 
-def menu_reportes():
-    limpiar_pantalla()
-    print("--- 📉 REPORTES Y CIERRE ---")
-    print("1. Ver Historial Completo de Ventas")
-    print("2. 📠 Realizar CIERRE DE CAJA (Hoy)")
-    print("3. Volver")
-    return input("\n>> Seleccione: ")
+def menu_movimientos():
+    print("\n--- MOVIMIENTOS DE STOCK ---")
+    print("  1. Registrar Entrada (Ingreso de mercancía)")
+    print("  2. Registrar Salida (Despacho/Merma)")
+    print("  3. Volver")
+    return input(">> Opción: ").strip()
 
 
-def menu_gestion_clientes():
-    # Evitamos circular import importando dentro
-    import cli.operaciones as ops
-
-    while True:
-        limpiar_pantalla()
-        print("--- 👥 GESTIÓN DE CLIENTES ---")
-        print("1. Registrar Cliente")
-        print("2. Listar Clientes")
-        print("3. Buscar Cliente (Detalles)")
-        print("4. Volver")
-        op = input("\n>> Seleccione: ")
-
-        if op == "1":
-            ops.registrar_cliente_interactivo()
-        elif op == "2":
-            ops.listar_clientes()
-        elif op == "3":
-            ops.buscar_cliente_pro()
-        elif op == "4":
-            break
-        input("\nPresione [ENTER] para continuar...")
-
-
-def menu_gestion_usuarios():
-    limpiar_pantalla()
-    print("--- 👮 GESTIÓN DE PERSONAL ---")
-    print("1. Crear Nuevo Usuario")
-    print("2. Listar Personal")
-    print("3. Eliminar Usuario")
-    print("4. Modificar Permisos (Avanzado) 🔧")
-    print("5. Editar Datos (Nombre/Clave/Rol) ✏️")
-    print("6. Volver")
-    return input("\n>> Seleccione: ")
-
-
-def menu_editar_campo_usuario(usuario):
-    print(f"\n--- ✏️ EDITANDO A: {usuario} ---")
-    print("1. Cambiar Nombre de Usuario (Login)")
-    print("2. Cambiar Contraseña")
-    print("3. Cambiar Rol (Resetea permisos)")
-    print("4. Volver")
-    return input(">> ¿Qué desea modificar?: ")
-
-
-def menu_seleccion_rol():
-    print("\n--- SELECCIÓN DE ROL ---")
-    print("1. Administrador (Control Total)")
-    print("2. Cajero (Ventas + Clientes)")
-    print("3. Bodeguero (Stock + Productos)")
-    print("4. Supervisor (Gestión sin Admin)")
-    print("5. 🔧 PERSONALIZADO (Elegir permisos manualmente)")
-    return input(">> Seleccione Rol: ")
-
-
-def interfaz_modificar_permisos(usuario, rol_actual, permisos_actuales):
-    limpiar_pantalla()
-    print(f"🔧 EDITANDO PERMISOS DE: {usuario}")
-    print(f" Rol actual: {rol_actual}")
-    print("-" * 50)
-    nuevos = []
-    for clave, desc in PERMISOS_DISPONIBLES.items():
-        tiene = clave in permisos_actuales
-        icon = "✅ SI" if tiene else "❌ NO"
-        r = input(f"  [{icon}] {clave} ({desc}) -> Nuevo estado? (S/N): ").upper()
-        if r == "S":
-            nuevos.append(clave)
-        elif r == "N":
-            pass
-        else:
-            if tiene:
-                nuevos.append(clave)
-    return nuevos
-
-
-def menu_seleccion_factura():
-    print("\n--- 👤 DATOS DE FACTURACIÓN ---")
-    print("1. Consumidor Final")
-    print("2. Cliente Ya Registrado (Buscar por Cédula)")
-    print("3. Registrar Nuevo Cliente Ahora Mismo")
-    return input("Seleccione opción (1-3): ").strip()
+def menu_personal():
+    print("\n--- GESTIÓN DE PERSONAL ---")
+    print("  1. Añadir nuevo empleado")
+    print("  2. Bloquear / Desbloquear empleado")
+    print("  3. Eliminar empleado (Baja definitiva)")
+    print("  4. Volver")
+    return input(">> Opción: ").strip()

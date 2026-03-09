@@ -1,267 +1,165 @@
-# core/datos.py (V-1.7.3 CORREGIDO)
-import json
+# core/datos.py
 import os
-import hashlib
+import json
 import random
 import string
-from datetime import datetime
-from .config import ARCHIVO_FINANZAS
+import hashlib
 
-# Importamos las nuevas rutas
-from .config import (
-    ARCHIVO_DATOS,
-    INVENTARIO_INICIAL,
-    ARCHIVO_CLIENTES,
-    ARCHIVO_EMPLEADOS,
-    ARCHIVO_CLIENTES_LOGIN,
-    ARCHIVO_USUARIOS_LEGACY,
-    ARCHIVO_PENDIENTES,
-    DIR_VENTAS_DIARIAS,
-)
+# ==========================================
+# RUTAS DE ARCHIVOS (Configuración Base)
+# ==========================================
+DB_DIR = "db"
+ARCHIVO_INVENTARIO = os.path.join(DB_DIR, "inventario.json")
+ARCHIVO_EMPLEADOS = os.path.join(DB_DIR, "empleados.json")
+ARCHIVO_MOVIMIENTOS = os.path.join(DB_DIR, "movimientos.json")
 
-# Bases de datos en memoria
+# ==========================================
+# BASES DE DATOS EN MEMORIA (Diccionarios)
+# ==========================================
 inventario_db = {}
-ventas_db = []
-clientes_db = {}
-pendientes_db = {}
-nombre_archivo_ventas_hoy = ""
-capital_db = {"capital_disponible": 0.0, "moneda": "USD"}
+usuarios_db = {}
+movimientos_db = []  # Lista para registrar el historial de entradas y salidas
 
-# --- DOBLE ALMACÉN ---
-empleados_db = {}  # Solo Staff
-clientes_login_db = {}  # Solo Clientes con cuenta
-usuarios_db = {}  # Fusión en RAM (Staff + Clientes) para el Login
-
-# Roles y Permisos
-PERMISOS_DISPONIBLES = {
-    "VENTAS": "Acceso a Caja y Facturación",
-    "STOCK": "Movimientos de Entrada/Salida",
-    "PROD": "Crear, Editar y Borrar Productos",
-    "CLIENTES": "Registrar y Ver Clientes",
-    "REPORTES": "Ver Historial de Ventas y Dinero",
-    "ADMIN": "Gestión Total (Usuarios y Config)",
-    "COMPRA_SELF": "Permiso para comprar como cliente",
-}
-
+# ==========================================
+# ROLES Y PERMISOS DE HADES WMS
+# ==========================================
 ROLES_PLANTILLA = {
-    "Administrador": ["VENTAS", "STOCK", "PROD", "CLIENTES", "REPORTES", "ADMIN"],
-    "Cajero": ["VENTAS", "CLIENTES"],
-    "Bodeguero": ["STOCK", "PROD"],
-    "Supervisor": ["VENTAS", "STOCK", "CLIENTES", "REPORTES"],
-    "Cliente": ["COMPRA_SELF"],
+    "Administrador": ["ADMIN", "PROD", "STOCK", "RRHH", "MOVIMIENTOS"],
+    "Bodeguero": ["STOCK", "PROD", "MOVIMIENTOS"],
+    "Invitado": ["VER_STOCK"],
 }
 
 
-def generar_codigo_recuperacion():
-    chars = string.ascii_uppercase + string.digits
-    return "".join(random.choice(chars) for _ in range(6))
+# ==========================================
+# FUNCIONES DE CARGA Y GUARDADO
+# ==========================================
+def asegurar_carpetas():
+    """Crea el directorio de la base de datos si no existe."""
+    if not os.path.exists(DB_DIR):
+        os.makedirs(DB_DIR)
 
 
 def cargar_datos_sistema():
-    global inventario_db, ventas_db, clientes_db, usuarios_db, pendientes_db
-    global empleados_db, clientes_login_db, nombre_archivo_ventas_hoy, capital_db
+    """Carga todos los JSON a la memoria del programa de forma segura."""
+    global inventario_db, usuarios_db, movimientos_db
+    asegurar_carpetas()
 
-    # 1. INVENTARIO
-    if os.path.exists(ARCHIVO_DATOS):
-        try:
-            with open(ARCHIVO_DATOS, "r", encoding="utf-8") as f:
-                inventario_db.clear()
-                inventario_db.update(json.load(f))
-        except:
+    # 1. Cargar Inventario (Con datos por defecto de papelería si no existe)
+    if os.path.exists(ARCHIVO_INVENTARIO):
+        with open(ARCHIVO_INVENTARIO, "r", encoding="utf-8") as f:
             inventario_db.clear()
+            inventario_db.update(json.load(f))
     else:
+        # Inventario semilla (predeterminado)
         inventario_db.clear()
-        inventario_db.update(INVENTARIO_INICIAL)
+        inventario_db.update(
+            {
+                "PAP-001": {
+                    "nombre": "Cuaderno Universitario 100h",
+                    "categoria": "Cuadernos",
+                    "marca": "Norma",
+                    "stock": 50,
+                    "stock_minimo": 10,
+                },
+                "PAP-002": {
+                    "nombre": "Esfero Tinta Seca Azul",
+                    "categoria": "Escritura",
+                    "marca": "Bic",
+                    "stock": 120,
+                    "stock_minimo": 20,
+                },
+                "PAP-003": {
+                    "nombre": "Lápiz de Grafito HB 2",
+                    "categoria": "Escritura",
+                    "marca": "Staedtler",
+                    "stock": 80,
+                    "stock_minimo": 15,
+                },
+                "PAP-004": {
+                    "nombre": "Resma de Papel A4 75g",
+                    "categoria": "Papelería",
+                    "marca": "Chamex",
+                    "stock": 25,
+                    "stock_minimo": 5,
+                },
+                "PAP-005": {
+                    "nombre": "Borrador de Queso",
+                    "categoria": "Accesorios",
+                    "marca": "Pelikan",
+                    "stock": 40,
+                    "stock_minimo": 10,
+                },
+                "PAP-006": {
+                    "nombre": "Caja de Marcadores x12",
+                    "categoria": "Arte",
+                    "marca": "Crayola",
+                    "stock": 15,
+                    "stock_minimo": 5,
+                },
+            }
+        )
         guardar_inventario()
 
-    # 2. VENTAS DEL DÍA
-    if not os.path.exists(DIR_VENTAS_DIARIAS):
-        os.makedirs(DIR_VENTAS_DIARIAS)
-    hoy_str = datetime.now().strftime("%Y-%m-%d")
-    nombre_archivo_ventas_hoy = os.path.join(
-        DIR_VENTAS_DIARIAS, f"ventas_{hoy_str}.json"
-    )
-
-    if os.path.exists(nombre_archivo_ventas_hoy):
-        try:
-            with open(nombre_archivo_ventas_hoy, "r", encoding="utf-8") as f:
-                ventas_db[:] = json.load(f)
-        except:
-            ventas_db[:] = []
-    else:
-        ventas_db[:] = []
-
-    # 3. CLIENTES (Datos Facturación)
-    if os.path.exists(ARCHIVO_CLIENTES):
-        try:
-            with open(ARCHIVO_CLIENTES, "r", encoding="utf-8") as f:
-                clientes_db.clear()
-                clientes_db.update(json.load(f))
-        except:
-            clientes_db.clear()
-    else:
-        clientes_db.clear()
-
-    # ==========================================================
-    # 4. SISTEMA DE USUARIOS (MIGRACIÓN Y CARGA DOBLE)
-    # ==========================================================
-    empleados_db.clear()
-    clientes_login_db.clear()
-
-    # A) MIGRACIÓN LEGACY
-    if os.path.exists(ARCHIVO_USUARIOS_LEGACY):
-        print("⚠️  MIGRANDO SISTEMA DE USUARIOS A V-1.7.3...")
-        try:
-            with open(ARCHIVO_USUARIOS_LEGACY, "r", encoding="utf-8") as f:
-                legacy_data = json.load(f)
-
-            for u, data in legacy_data.items():
-                if data.get("rol") == "Cliente":
-                    clientes_login_db[u] = data
-                else:
-                    empleados_db[u] = data
-
-            guardar_empleados()
-            guardar_clientes_login()
-            os.rename(ARCHIVO_USUARIOS_LEGACY, ARCHIVO_USUARIOS_LEGACY + ".bak")
-            print("✅ Migración completada.")
-        except Exception as e:
-            print(f"❌ Error migrando: {e}")
-
-    # B) Cargar Empleados
+    # 2. Cargar Empleados (Con creación de Admin por defecto si no hay JSON)
     if os.path.exists(ARCHIVO_EMPLEADOS):
-        try:
-            with open(ARCHIVO_EMPLEADOS, "r", encoding="utf-8") as f:
-                empleados_db.update(json.load(f))
-        except:
-            pass
+        with open(ARCHIVO_EMPLEADOS, "r", encoding="utf-8") as f:
+            usuarios_db.clear()
+            usuarios_db.update(json.load(f))
     else:
-        if not empleados_db and not os.path.exists(ARCHIVO_USUARIOS_LEGACY + ".bak"):
-            pass_hash = hashlib.sha256("123".encode()).hexdigest()
-            empleados_db["admin"] = {
-                "pass_hash": pass_hash,
-                "rol": "Administrador",
-                "permisos": ROLES_PLANTILLA["Administrador"],
-                "bloqueado": False,
-                "codigo_recuperacion": "ADMIN1",
-            }
-            guardar_empleados()
+        # Administrador inicial por defecto
+        from core.datos import generar_codigo_recuperacion
 
-    # C) Cargar Clientes Login
-    if os.path.exists(ARCHIVO_CLIENTES_LOGIN):
-        try:
-            with open(ARCHIVO_CLIENTES_LOGIN, "r", encoding="utf-8") as f:
-                clientes_login_db.update(json.load(f))
-        except:
-            pass
+        usuarios_db.clear()
+        usuarios_db["admin"] = {
+            "pass_hash": hashlib.sha256("123".encode()).hexdigest(),
+            "rol": "Administrador",
+            "permisos": ROLES_PLANTILLA["Administrador"],
+            "bloqueado": False,
+            "codigo_recuperacion": "ADMIN-0000",
+        }
+        guardar_empleados()
 
-    # D) FUSIÓN EN RAM
-    usuarios_db.clear()
-    usuarios_db.update(empleados_db)
-    usuarios_db.update(clientes_login_db)
-
-    # 5. PENDIENTES
-    if os.path.exists(ARCHIVO_PENDIENTES):
-        try:
-            with open(ARCHIVO_PENDIENTES, "r", encoding="utf-8") as f:
-                pendientes_db.clear()
-                pendientes_db.update(json.load(f))
-        except:
-            pendientes_db.clear()
-    else:
-        pendientes_db.clear()
-
-    # NUEVO: Cargar Finanzas
-    if os.path.exists(ARCHIVO_FINANZAS):
-        with open(ARCHIVO_FINANZAS, "r") as f:
-            capital_db = json.load(f)
-    else:
-        # Si no existe, lo creamos con un capital inicial (ej: $500 para pruebas)
-        capital_db = {"capital_disponible": 500.0, "moneda": "USD"}
-        guardar_finanzas()
+    # 3. Cargar Movimientos (Entradas y Salidas)
+    if os.path.exists(ARCHIVO_MOVIMIENTOS):
+        with open(ARCHIVO_MOVIMIENTOS, "r", encoding="utf-8") as f:
+            movimientos_db.clear()
+            movimientos_db.extend(json.load(f))
 
 
-# --- FUNCIONES DE GUARDADO ---
 def guardar_inventario():
-    with open(ARCHIVO_DATOS, "w", encoding="utf-8") as f:
+    with open(ARCHIVO_INVENTARIO, "w", encoding="utf-8") as f:
         json.dump(inventario_db, f, indent=4)
-
-
-def guardar_historial_ventas():
-    if nombre_archivo_ventas_hoy:
-        with open(nombre_archivo_ventas_hoy, "w", encoding="utf-8") as f:
-            json.dump(ventas_db, f, indent=4)
-
-
-def guardar_clientes():
-    with open(ARCHIVO_CLIENTES, "w", encoding="utf-8") as f:
-        json.dump(clientes_db, f, indent=4)
 
 
 def guardar_empleados():
     with open(ARCHIVO_EMPLEADOS, "w", encoding="utf-8") as f:
-        json.dump(empleados_db, f, indent=4)
+        json.dump(usuarios_db, f, indent=4)
 
 
-def guardar_clientes_login():
-    with open(ARCHIVO_CLIENTES_LOGIN, "w", encoding="utf-8") as f:
-        json.dump(clientes_login_db, f, indent=4)
+def guardar_movimientos():
+    with open(ARCHIVO_MOVIMIENTOS, "w", encoding="utf-8") as f:
+        json.dump(movimientos_db, f, indent=4)
 
 
-def guardar_pendientes():
-    with open(ARCHIVO_PENDIENTES, "w", encoding="utf-8") as f:
-        json.dump(pendientes_db, f, indent=4)
-
-
-def guardar_finanzas():
-    with open(ARCHIVO_FINANZAS, "w") as f:
-        json.dump(capital_db, f, indent=4)
-
-
-# ========================================================
-# 🔧 PUENTE DE COMPATIBILIDAD (¡ESTO ARREGLA EL ERROR!)
-# ========================================================
-def guardar_usuarios():
-    """
-    Esta función existe para que 'operaciones.py' no falle.
-    Guarda TODO (Empleados y Clientes) para asegurar que los cambios se reflejen.
-    """
-    guardar_empleados()
-    guardar_clientes_login()
-
-
-# --- ACCIONES ---
-def resetear_password(usuario, nueva_pass):
-    h = hashlib.sha256(nueva_pass.encode()).hexdigest()
-    if usuario in empleados_db:
-        empleados_db[usuario]["pass_hash"] = h
-        guardar_empleados()
-        return True
-    elif usuario in clientes_login_db:
-        clientes_login_db[usuario]["pass_hash"] = h
-        guardar_clientes_login()
-        return True
-    return False
+# ==========================================
+# FUNCIONES DE SEGURIDAD Y CONTROL DE ESTADO
+# ==========================================
+def generar_codigo_recuperacion():
+    """Genera un código único alfanumérico de 6 dígitos para recuperar cuentas."""
+    caracteres = string.ascii_uppercase + string.digits
+    return "".join(random.choice(caracteres) for _ in range(6))
 
 
 def bloquear_usuario(usuario):
-    if usuario in empleados_db:
-        empleados_db[usuario]["bloqueado"] = True
-        guardar_empleados()
-    elif usuario in clientes_login_db:
-        clientes_login_db[usuario]["bloqueado"] = True
-        guardar_clientes_login()
+    """Cambia el estado del usuario a bloqueado tras fallar los intentos."""
     if usuario in usuarios_db:
         usuarios_db[usuario]["bloqueado"] = True
-
-
-def rehabilitar_usuario(usuario):
-    if usuario in empleados_db:
-        empleados_db[usuario]["bloqueado"] = False
         guardar_empleados()
-        return True
-    elif usuario in clientes_login_db:
-        clientes_login_db[usuario]["bloqueado"] = False
-        guardar_clientes_login()
-        return True
-    return False
+
+
+def desbloquear_usuario(usuario):
+    """Reactiva al usuario y le asigna un nuevo código de recuperación por seguridad."""
+    if usuario in usuarios_db:
+        usuarios_db[usuario]["bloqueado"] = False
+        usuarios_db[usuario]["codigo_recuperacion"] = generar_codigo_recuperacion()
+        guardar_empleados()

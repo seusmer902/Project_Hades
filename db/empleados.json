@@ -1,16 +1,26 @@
 {
     "admin": {
-        "pass_hash": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+        "pass_hash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
         "rol": "Administrador",
         "permisos": [
-            "VENTAS",
-            "STOCK",
+            "ADMIN",
             "PROD",
-            "CLIENTES",
-            "REPORTES",
-            "ADMIN"
+            "STOCK",
+            "RRHH",
+            "MOVIMIENTOS"
         ],
         "bloqueado": false,
-        "codigo_recuperacion": "ADMIN1"
+        "codigo_recuperacion": "ADMIN-0000"
+    },
+    "Manuel": {
+        "pass_hash": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+        "rol": "Bodeguero",
+        "permisos": [
+            "STOCK",
+            "PROD",
+            "MOVIMIENTOS"
+        ],
+        "bloqueado": false,
+        "codigo_recuperacion": "50IFKV"
     }
 }
