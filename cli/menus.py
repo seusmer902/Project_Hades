@@ -7,9 +7,6 @@ def limpiar_pantalla():
     os.system("cls" if os.name == "nt" else "clear")
 
 
-# ==========================================
-# MENÚS DE SEGURIDAD Y ACCESO
-# ==========================================
 def mostrar_menu_inicio_sesion():
     limpiar_pantalla()
     print("\n" + "═" * 45)
@@ -32,9 +29,6 @@ def menu_fallo_intentos(reinicio_actual, max_reinicios):
     return input(">> ¿Qué desea hacer?: ").strip()
 
 
-# ==========================================
-# MENÚ PRINCIPAL Y SUBMENÚS DE NAVEGACIÓN
-# ==========================================
 def mostrar_menu_principal(usuario, rol, alertas=0):
     limpiar_pantalla()
     print("\n" + "═" * 45)
@@ -78,9 +72,11 @@ def menu_mantenimiento():
 
 def menu_movimientos():
     print("\n--- MOVIMIENTOS DE STOCK ---")
-    print("  1. Registrar Entrada (Ingreso de mercancía)")
-    print("  2. Registrar Salida (Despacho/Merma)")
-    print("  3. Volver")
+    print("  1. Registrar Entrada (Manual)")
+    print("  2. Registrar Salida (Manual)")
+    print("  3. ESCANEAR QR PARA MOVIMIENTO")
+    print("  4. Reportes (Cierre)")
+    print("  5. Volver")
     return input(">> Opción: ").strip()
 
 
@@ -109,3 +105,24 @@ def menu_qr():
     print("  2. Generar QR de TODO el inventario (Masivo)")
     print("  3. Volver")
     return input(">> Opción: ").strip()
+
+
+def menu_filtros_inventario():
+    print("\n--- BÚSQUEDA DE INVENTARIO ---")
+    print("  1. Ver todo el inventario general")
+    print("  2. Buscar por Nombre")
+    print("  3. Buscar por Código")
+    print("  4. Buscar por Categoría")
+    print("  5. Buscar por Marca")
+    print("  6. Buscar por Código QR")  # NUEVA OPCIÓN
+    print("  7. Volver")
+    return input(">> Opción: ").strip()
+
+
+def menu_reportes():
+    print("\n--- 📊 MÓDULO DE REPORTES Y CIERRES ---")
+    print("  1. Reporte de HOY (Cierre actual)")
+    print("  2. Consultar reporte por FECHA (Histórico)")
+    print("  3. Ver historial COMPLETO de movimientos")
+    print("  4. Volver")
+    return input(">> Seleccione una opción: ").strip()

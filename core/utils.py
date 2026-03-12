@@ -18,7 +18,7 @@ def generar_qr_producto(codigo, datos_str):
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=10,
+        box_size=20,
         border=4,
     )
     qr.add_data(datos_str)

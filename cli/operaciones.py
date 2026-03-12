@@ -2,8 +2,9 @@
 import hashlib
 import getpass
 from datetime import datetime
+import cv2
+from pyzbar.pyzbar import decode
 
-# IMPORTACIÓN CORREGIDA: Ya no importamos ROLES_PLANTILLA, ahora usamos roles_db
 from core.datos import (
     inventario_db,
     usuarios_db,
@@ -92,7 +93,6 @@ def recuperar_acceso(user=None):
 
 
 def ver_mi_codigo_seguridad(usuario):
-    """Permite al usuario logueado ver su propio código de recuperación."""
     print("\n--- MI CÓDIGO DE RECUPERACIÓN ---")
     pwd = getpass.getpass("Por seguridad, ingrese su contraseña actual: ")
     h = hashlib.sha256(pwd.encode()).hexdigest()
@@ -111,7 +111,7 @@ def ver_mi_codigo_seguridad(usuario):
 # ==========================================
 def registrar_producto():
     print("\n--- NUEVO PRODUCTO ---")
-    codigo = input("Código (ej: PROD-001): ").strip().upper()
+    codigo = input("Código (ej: PAP-001): ").strip().upper()
     if codigo in inventario_db:
         print("❌ El código ya existe.")
         return
@@ -137,7 +137,8 @@ def registrar_producto():
         "stock_minimo": stock_min,
     }
     guardar_inventario()
-    generar_qr_producto(codigo, f"Código: {codigo}\nNombre: {nombre}\nMarca: {marca}")
+    info = f"ID: {codigo}\nNombre: {nombre}\nMarca: {marca}\nCat: {categoria}"
+    generar_qr_producto(codigo, info)
     print("✅ Producto registrado y código QR generado.")
 
 
@@ -206,13 +207,13 @@ def imprimir_tabla_inventario(diccionario_filtrado):
         return
 
     print(
-        f"\n{'CÓDIGO':<12} | {'NOMBRE':<20} | {'MARCA':<15} | {'CATEGORÍA':<15} | {'STOCK'}"
+        f"\n{'CÓDIGO':<10} | {'NOMBRE':<22} | {'MARCA':<10} | {'CATEGORÍA':<12} | {'STOCK'}"
     )
     print("-" * 75)
     for c, p in diccionario_filtrado.items():
         alerta = "⚠️" if p["stock"] <= p.get("stock_minimo", 5) else ""
         print(
-            f"{c:<12} | {p['nombre'][:19]:<20} | {p.get('marca', '')[:14]:<15} | {p.get('categoria', '')[:14]:<15} | {p['stock']} {alerta}"
+            f"{c:<10} | {p['nombre'][:21]:<22} | {p.get('marca', '')[:9]:<10} | {p.get('categoria', '')[:11]:<12} | {p['stock']} {alerta}"
         )
 
 
@@ -234,6 +235,10 @@ def consultar_inventario():
             elif opcion == "5" and termino in prod.get("marca", "").lower():
                 resultados[cod] = prod
         imprimir_tabla_inventario(resultados)
+    elif opcion == "6":
+        buscar_producto_por_qr()
+    elif opcion == "7":
+        return
 
 
 # ==========================================
@@ -292,8 +297,170 @@ def registrar_movimiento(usuario, tipo_movimiento):
     print(f"✅ Movimiento registrado. Nuevo stock: {prod['stock']}")
 
 
+def registrar_movimiento_directo(usuario, tipo, codigo):
+    """Versión simplificada de registrar_movimiento para el flujo de QR."""
+    prod = inventario_db[codigo]
+    try:
+        cant = int(input(f"Cantidad para {tipo} ({prod['nombre']}): "))
+        if tipo == "SALIDA" and cant > prod["stock"]:
+            print(f"❌ Error: Stock insuficiente ({prod['stock']}).")
+            return
+        if tipo == "ENTRADA":
+            prod["stock"] += cant
+        else:
+            prod["stock"] -= cant
+
+        guardar_inventario()
+        movimiento = {
+            "fecha": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "tipo": tipo,
+            "codigo_prod": codigo,
+            "cantidad": cant,
+            "usuario": usuario,
+            "motivo": "Escaneo QR",
+        }
+        movimientos_db.append(movimiento)
+        guardar_movimientos()
+        print(f"✅ {tipo} registrada. Nuevo stock: {prod['stock']}")
+    except ValueError:
+        print("❌ Cantidad inválida.")
+
+
 # ==========================================
-# 5. MÓDULO DE RRHH Y ROLES (DINÁMICOS)
+# 5. MÓDULO DE REPORTES Y CIERRES
+# ==========================================
+def mostrar_tabla_movimientos(lista_movs, titulo):
+    print(f"\n" + "═" * 75)
+    print(f" 📋 {titulo}")
+    print("═" * 75)
+
+    if not lista_movs:
+        print("📭 No se encontraron registros para esta consulta.")
+        return
+
+    print(
+        f"{'FECHA Y HORA':<20} | {'TIPO':<10} | {'PROD':<10} | {'CANT':<6} | {'USUARIO'}"
+    )
+    print("-" * 75)
+
+    t_ent = 0
+    t_sal = 0
+    for m in lista_movs:
+        print(
+            f"{m['fecha']:<20} | {m['tipo']:<10} | {m['codigo_prod']:<10} | {m['cantidad']:<6} | {m['usuario']}"
+        )
+        if m["tipo"] == "ENTRADA":
+            t_ent += m["cantidad"]
+        else:
+            t_sal += m["cantidad"]
+
+    print("-" * 75)
+    print(f"✅ Total Entradas: {t_ent} | 🚫 Total Salidas: {t_sal}")
+    print("═" * 75)
+
+
+def generar_reporte_diario():
+    hoy = datetime.now().strftime("%Y-%m-%d")
+    movs = [m for m in movimientos_db if m["fecha"].startswith(hoy)]
+    mostrar_tabla_movimientos(movs, f"REPORTE DEL DÍA ({hoy})")
+
+
+def consultar_reporte_por_fecha():
+    fecha_busqueda = input("Ingrese la fecha a consultar (AAAA-MM-DD): ").strip()
+    movs = [m for m in movimientos_db if m["fecha"].startswith(fecha_busqueda)]
+    mostrar_tabla_movimientos(movs, f"REPORTE HISTÓRICO: {fecha_busqueda}")
+
+
+def ver_historial_completo():
+    mostrar_tabla_movimientos(movimientos_db, "HISTORIAL GENERAL DE MOVIMIENTOS")
+
+
+# ==========================================
+# 6. MÓDULO DE LECTURA Y GENERACIÓN QR
+# ==========================================
+def capturar_codigo_qr():
+    cap = cv2.VideoCapture(0)
+    codigo_detectado = None
+    print("📷 Cámara activa. Enfoque el QR (Presione 'Q' para salir)...")
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        for code in decode(frame):
+            contenido = code.data.decode("utf-8")
+            if "ID: " in contenido:
+                codigo_detectado = contenido.split("\n")[0].replace("ID: ", "").strip()
+                break
+
+        cv2.imshow("HADES WMS - ESCANER QR", frame)
+        if codigo_detectado or cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+    return codigo_detectado
+
+
+def buscar_producto_por_qr():
+    codigo = capturar_codigo_qr()
+    if codigo:
+        if codigo in inventario_db:
+            print(f"\n✅ PRODUCTO ENCONTRADO")
+            imprimir_tabla_inventario({codigo: inventario_db[codigo]})
+        else:
+            print(f"❌ El código '{codigo}' no existe en la base de datos.")
+    else:
+        print("⚠️ Escaneo cancelado.")
+
+
+def escanear_qr_movimiento(usuario):
+    codigo = capturar_codigo_qr()
+    if codigo and codigo in inventario_db:
+        prod = inventario_db[codigo]
+        print("\n" + "═" * 40)
+        print(f"📦 DETALLE DEL PRODUCTO DETECTADO")
+        print(f"   Nombre: {prod['nombre']}")
+        print(f"   Marca:  {prod['marca']}")
+        print(f"   Categoría: {prod['categoria']}")
+        print(f"   Stock Actual: {prod['stock']}")
+        print("═" * 40)
+
+        print("\n1. [➕] Registrar ENTRADA | 2. [➖] Registrar SALIDA | 3. Cancelar")
+        tipo_op = input(">> Seleccione operación: ").strip()
+
+        if tipo_op == "1":
+            registrar_movimiento_directo(usuario, "ENTRADA", codigo)
+        elif tipo_op == "2":
+            registrar_movimiento_directo(usuario, "SALIDA", codigo)
+    elif codigo:
+        print(f"❌ El código '{codigo}' no está registrado.")
+
+
+def flujo_generar_qr_unico():
+    codigo = input("Ingrese el código del producto: ").strip().upper()
+    if codigo in inventario_db:
+        p = inventario_db[codigo]
+        info = f"ID: {codigo}\nNombre: {p['nombre']}\nMarca: {p['marca']}\nCat: {p['categoria']}"
+        ruta = generar_qr_producto(codigo, info)
+        print(f"✅ QR generado con éxito en: {ruta}")
+    else:
+        print("❌ Producto no encontrado.")
+
+
+def flujo_generar_qr_masivo():
+    print(f"⌛ Generando QR para {len(inventario_db)} productos...")
+    for codigo, p in inventario_db.items():
+        info = f"ID: {codigo}\nNombre: {p['nombre']}\nMarca: {p['marca']}\nCat: {p['categoria']}"
+        generar_qr_producto(codigo, info)
+    print(
+        f"✅ Se han generado {len(inventario_db)} códigos QR en la carpeta correspondiente."
+    )
+
+
+# ==========================================
+# 7. MÓDULO DE RRHH Y ROLES
 # ==========================================
 def listar_personal():
     print(f"\n{'USUARIO':<15} | {'ROL':<15} | {'ESTADO':<15} | {'CÓDIGO RECUP.'}")
@@ -316,9 +483,7 @@ def registrar_empleado():
     print(f"Roles disponibles: {', '.join(roles_db.keys())}")
     rol = input("Rol asignado: ").strip().capitalize()
 
-    # CORRECCIÓN: Toma los permisos de la base de roles (por defecto Bodeguero si se equivoca)
     permisos = roles_db.get(rol, roles_db.get("Bodeguero", []))
-
     from core.datos import generar_codigo_recuperacion
 
     codigo_rec = generar_codigo_recuperacion()
@@ -374,7 +539,6 @@ def eliminar_empleado():
         print("❌ Usuario no encontrado.")
 
 
-# --- GESTIÓN DE ROLES ---
 def listar_roles():
     print("\n--- ROLES DEL SISTEMA ---")
     for r, perms in roles_db.items():
@@ -414,31 +578,8 @@ def editar_rol():
     roles_db[rol_editar] = permisos_lista
     guardar_roles()
 
-    # Actualiza los permisos de todos los empleados que tengan este rol
     for u, datos in usuarios_db.items():
         if datos.get("rol") == rol_editar:
             datos["permisos"] = permisos_lista
     guardar_empleados()
-
     print(f"✅ Rol '{rol_editar}' y usuarios asociados actualizados.")
-
-
-def flujo_generar_qr_unico():
-    codigo = (
-        input("Ingrese el código del producto para generar su QR: ").strip().upper()
-    )
-    if codigo in inventario_db:
-        p = inventario_db[codigo]
-        info = f"ID: {codigo}\nNombre: {p['nombre']}\nMarca: {p['marca']}\nCat: {p['categoria']}"
-        ruta = generar_qr_producto(codigo, info)
-        print(f"✅ QR generado con éxito en: {ruta}")
-    else:
-        print("❌ Producto no encontrado.")
-
-
-def flujo_generar_qr_masivo():
-    print(f"⌛ Generando QR para {len(inventario_db)} productos...")
-    for codigo, p in inventario_db.items():
-        info = f"ID: {codigo}\nNombre: {p['nombre']}\nMarca: {p['marca']}\nCat: {p['categoria']}"
-        generar_qr_producto(codigo, info)
-    print(f"✅ Se han generado {len(inventario_db)} códigos QR en la carpeta /qrcodes.")

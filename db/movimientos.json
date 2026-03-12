@@ -1,0 +1,10 @@
+[
+    {
+        "fecha": "2026-03-12 08:31:02",
+        "tipo": "ENTRADA",
+        "codigo_prod": "PAP-002",
+        "cantidad": 50,
+        "usuario": "admin",
+        "motivo": "Escaneo QR"
+    }
+]
